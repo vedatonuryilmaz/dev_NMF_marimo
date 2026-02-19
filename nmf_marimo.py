@@ -12,9 +12,9 @@ def _():
     import plotly.graph_objects as go
 
     from nmf_vis.scatter import create_scatterplot
-    from nmf_vis.heatmap import create_heatmap_figure
+    from nmf_vis.heatmap import create_heatmap_figure, create_grandscatter_widget
 
-    return create_heatmap_figure, create_scatterplot, go, mo, np, pd
+    return create_grandscatter_widget, create_heatmap_figure, create_scatterplot, go, mo, np, pd
 
 
 @app.cell
@@ -71,11 +71,34 @@ def _(create_heatmap_figure, mo, scatter_widget, sort_method):
     )
 
     heatmap_plot = mo.ui.plotly(fig)
+
     return caption, heatmap_plot, selected_ids
 
 
 @app.cell
-def _(caption, heatmap_plot, mo, scatter_widget, selected_ids, sort_method, umap_data):
+def _(create_grandscatter_widget, mo, selected_ids):
+    """Grandscatter: interactive multi-dimensional NMF proportion explorer.
+    
+    Create in separate cell to simplify Marimo binding lifecycle.
+    Drag axis handles to rotate the 16-dim NMF proportion cloud.
+    """
+    try:
+        gs_widget = create_grandscatter_widget(
+            cfg_path="conf/config.json",
+            selected_sample_ids=selected_ids,
+        )
+        grandscatter_plot = mo.ui.anywidget(gs_widget)
+    except Exception as e:
+        grandscatter_plot = mo.md(
+            f"**⚠️ Grandscatter widget error:** {type(e).__name__}: {str(e)[:200]}\n\n"
+            f"Please check the browser console for details."
+        )
+
+    return (grandscatter_plot,)
+
+
+@app.cell
+def _(caption, grandscatter_plot, heatmap_plot, mo, scatter_widget, selected_ids, sort_method, umap_data):
     if selected_ids is not None and len(selected_ids) > 0:
         selected_df = umap_data.iloc[selected_ids].reset_index(drop=True)
     else:
@@ -86,6 +109,9 @@ def _(caption, heatmap_plot, mo, scatter_widget, selected_ids, sort_method, umap
             sort_method,
             mo.md(f"**{caption}**"),
             mo.hstack([scatter_widget, heatmap_plot], widths=[0.4, 0.6]),
+            mo.md("### Multi-Dimensional NMF Proportions"),
+            mo.md("_Drag axis handles to rotate and explore the 16-dimensional NMF proportion space._"),
+            grandscatter_plot,
             mo.md("### Selected Samples"),
             mo.ui.table(selected_df),
         ]

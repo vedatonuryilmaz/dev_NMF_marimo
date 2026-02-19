@@ -78,6 +78,67 @@ def _load_component_colors(path, n_components, component_order):
         }
 
 
+def prepare_grandscatter_data(
+    cfg_path: str | Path = "conf/config.json",
+    selection: list[int] | None = None,
+) -> tuple[pd.DataFrame, list[str], dict[str, str]]:
+    """Build a DataFrame suitable for ``grandscatter.Scatter``.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        One row per sample. Columns: ``Comp_0`` … ``Comp_15`` (proportional
+        NMF activity) plus ``cancer_type`` (categorical label).
+    axis_fields : list[str]
+        The 16 component column names to use as projection axes.
+    label_colors : dict[str, str]
+        Mapping from cancer-type code to hex colour.
+    """
+    cfg = load_cfg(cfg_path)
+
+    csv_path = Path(
+        cfg.get("DEFAULT_CSV_FILENAME", "data/all_H_component_contributions_k16.csv")
+    )
+    npy_path = Path(
+        cfg.get("NPY_PROPORTIONS_FILENAME", "data/tcga_bulk_k16_H_proportions.npy")
+    )
+
+    # -- load H proportions and sample metadata --------------------------
+    meta_df = _get_dataframe(csv_path)
+    H_prop = np.load(npy_path)
+
+    if selection is not None:
+        meta_df = meta_df.iloc[selection].reset_index(drop=True)
+        H_prop = H_prop[selection]
+
+    n_comps = H_prop.shape[1]
+    axis_fields = [f"Comp_{i}" for i in range(n_comps)]
+
+    # Center each component axis by subtracting its column mean.
+    # Proportions sum to 1 per row, which creates a degenerate linear
+    # dependency (the 16th singular value ≈ 0).  Centering removes that
+    # artificial constraint so all 15 remaining axes are independent and
+    # the grand-tour projection fills 3-D space correctly.
+    H_centered = (H_prop - H_prop.mean(axis=0)).astype(np.float32)
+
+    df = pd.DataFrame(H_centered, columns=axis_fields)
+    df["cancer_type"] = [sid[:4] for sid in meta_df["sample_id"]]
+
+    # -- colours ---------------------------------------------------------
+    cancer_color_map = load_cancer_colors(
+        cfg.get("JSON_FILENAME_CANCER_TYPE_COLORS")
+    )
+    uniq = sorted(df["cancer_type"].unique())
+    from nmf_vis.color_utils import distinct_palette
+
+    auto = distinct_palette(len(uniq))
+    label_colors = {
+        ct: cancer_color_map.get(ct, auto[i]) for i, ct in enumerate(uniq)
+    }
+
+    return df, axis_fields, label_colors
+
+
 def load_all_data(cfg_path, sort_method):
     """Loads and prepares all data needed for the visualization."""
     cfg = load_cfg(cfg_path)

@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from plotly.graph_objs import FigureWidget
 from plotly.subplots import make_subplots
 
-from nmf_vis.data_utils import _get_prepared_data, load_cfg
+from nmf_vis.data_utils import _get_prepared_data, load_cfg, prepare_grandscatter_data
 from nmf_vis.sort_utils import get_sample_order
 from nmf_vis.color_utils import component_palette, distinct_palette, load_cancer_colors
 
@@ -473,6 +473,61 @@ def _configure_layout(
         dragmode="select",
         **legend_config,
     )
+
+
+def create_grandscatter_widget(
+    cfg_path: str | Path = "conf/config.json",
+    selected_sample_ids: list[int] | None = None,
+):
+    """Return a ``grandscatter.Scatter`` anywidget for NMF proportions.
+
+    The widget shows one point per sample positioned in
+    16-dimensional NMF-proportion space, coloured by cancer type.
+    Uses grandscatter defaults — no display customization applied.
+
+    Parameters
+    ----------
+    cfg_path : str | Path
+        Path to the project configuration JSON.
+    selected_sample_ids : list[int] | None
+        Optional row-index subset (same semantics as heatmap selection).
+
+    Returns
+    -------
+    grandscatter.Scatter
+        An anywidget instance ready for ``mo.ui.anywidget()``.
+    """
+    from grandscatter import Scatter  # lazy import keeps module loadable w/o grandscatter
+
+    df, axis_fields, label_colors = prepare_grandscatter_data(
+        cfg_path, selection=selected_sample_ids
+    )
+
+    # Validate data before widget creation
+    if df.empty:
+        raise ValueError("No data available for grandscatter widget")
+    if not all(f in df.columns for f in axis_fields):
+        raise ValueError(f"Missing axis fields; expected {axis_fields}, got {list(df.columns)}")
+    if "cancer_type" not in df.columns:
+        raise ValueError("Missing 'cancer_type' column in prepared data")
+    if df["cancer_type"].isnull().any():
+        raise ValueError("cancer_type contains null values; cannot create widget")
+    if df[axis_fields].isnull().any().any():
+        raise ValueError(f"Axis fields contain null values; cannot serialize to Arrow format")
+
+    try:
+        widget = Scatter(
+            df,
+            axis_fields=axis_fields,
+            label_field="cancer_type",
+            label_colors=label_colors,
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to initialize grandscatter.Scatter widget: {type(e).__name__}: {e}"
+        ) from e
+
+    return widget
 
 
 def create_empty_placeholder_figure(message="Error loading NMF data") -> go.Figure:
