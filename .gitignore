@@ -1,0 +1,72 @@
+# Python virtual environment
+.env/
+venv/
+ENV/
+NMFwid/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# VS Code settings
+.vscode/
+
+# Data files (uncomment if you don't want to track these)
+# *.csv
+# *.json
+# *.npy
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Agent state, logs and related documentation
+# Ignore state directories created by agents or orchestration
+brand-state/
+engineering-state/
+global-state/
+venture-state/
+
+# Common agent/runtime logs and artifacts
+*.log
+.vscode/
+.github/
+# Swarm / handoff / registry files and decision records
+*SWARM*.json
+*SWARM_REGISTRY*.json
+*SWARM_HANDOFF*.json
+DECISION_LOG.md
+*DECISION*.md
+TASK.md
+MASTER_PLAN.md
+GLOBAL_RISKS.md
+STATUS.md
+ARCHITECTURE.md
+BUILD_STATUS.md
+SPEC_CONTRACT.json
+TEST_LOG.md
