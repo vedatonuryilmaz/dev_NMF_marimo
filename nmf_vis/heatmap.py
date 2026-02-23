@@ -475,15 +475,87 @@ def _configure_layout(
     )
 
 
+def _initial_circular_basis_columns(ndim: int, ncols: int = 3) -> np.ndarray:
+    """Rebuild grandscatter's initial circular basis columns in Python."""
+    if ndim <= 0:
+        raise ValueError("ndim must be positive")
+
+    max_cols = max(1, min(ncols, ndim))
+    if ndim <= 2:
+        return np.eye(ndim, dtype=np.float64)[:, :max_cols]
+
+    scale = np.sqrt(2.0 / ndim)
+    angles = (2.0 * np.pi * np.arange(ndim)) / ndim
+    cols: list[np.ndarray] = [
+        scale * np.cos(angles),
+        scale * np.sin(angles),
+    ]
+
+    for j in range(ndim):
+        if len(cols) >= max_cols:
+            break
+        vec = np.zeros(ndim, dtype=np.float64)
+        vec[j] = 1.0
+        for col in cols:
+            vec -= np.dot(col, vec) * col
+        norm = np.linalg.norm(vec)
+        if norm > 1e-10:
+            cols.append(vec / norm)
+
+    return np.column_stack(cols[:max_cols])
+
+
+def _compute_grandscatter_axis_and_camera(
+    data_matrix: np.ndarray,
+    view_angle: float,
+    camera_scale: float = 2.5,
+    axis_padding: float = 1.05,
+) -> tuple[float, float]:
+    """Compute axis length/camera so rendered points stay inside axis bounds."""
+    if data_matrix.ndim != 2 or data_matrix.shape[1] == 0:
+        raise ValueError("data_matrix must be a 2D array with at least one column")
+
+    ndim = data_matrix.shape[1]
+    basis = _initial_circular_basis_columns(ndim, ncols=3)
+    eps = 1e-9
+
+    x = data_matrix @ basis[:, 0]
+    axis_x = max(np.max(np.abs(basis[:, 0])), eps)
+    needed_x = np.max(np.abs(x)) / axis_x
+
+    if basis.shape[1] >= 2:
+        y = data_matrix @ basis[:, 1]
+        axis_y = max(np.max(np.abs(basis[:, 1])), eps)
+        needed_y = np.max(np.abs(y)) / axis_y
+    else:
+        y = np.zeros_like(x)
+        needed_y = 0.0
+
+    axis_length = max(needed_x, needed_y, eps) * axis_padding
+
+    if basis.shape[1] >= 3:
+        z = data_matrix @ basis[:, 2]
+        z_max = float(np.max(z))
+    else:
+        z_max = 0.0
+
+    focal_length = 1.0 / np.tan(np.deg2rad(view_angle) / 2.0)
+    min_camera_z = z_max + focal_length + 0.1
+    camera_z = max(axis_length * camera_scale, min_camera_z)
+
+    return float(axis_length), float(camera_z)
+
+
 def create_grandscatter_widget(
     cfg_path: str | Path = "conf/config.json",
     selected_sample_ids: list[int] | None = None,
 ):
     """Return a ``grandscatter.Scatter`` anywidget for NMF proportions.
 
-    The widget shows one point per sample positioned in
-    16-dimensional NMF-proportion space, coloured by cancer type.
-    Uses grandscatter defaults — no display customization applied.
+    The widget shows one point per sample in 16-dimensional NMF-proportion
+    space, coloured by cancer type.  Uses orthographic projection (default)
+    so every point stays within the axis extents at all rotation angles.
+    All display parameters are left to grandscatter's own auto-scaling.
 
     Parameters
     ----------
@@ -516,6 +588,11 @@ def create_grandscatter_widget(
         raise ValueError(f"Axis fields contain null values; cannot serialize to Arrow format")
 
     try:
+        # Pass only required arguments — grandscatter auto-scales axis_length
+        # to maxDataRadius (L2 norm of data rows), which mathematically
+        # guarantees all projected points stay within the axis extents when
+        # using orthographic projection (the default).
+        # axis_fields order: Comp_0..Comp_15 matches NPY column order directly.
         widget = Scatter(
             df,
             axis_fields=axis_fields,
@@ -528,6 +605,43 @@ def create_grandscatter_widget(
         ) from e
 
     return widget
+
+
+def get_grandscatter_initial_projection(cfg_path: str | Path = "conf/config.json") -> dict:
+    """Return initial orthographic 2-D projection data for the hover tooltip.
+
+    Uses the same circular basis grandscatter picks on first render so the
+    tooltip sample identification is accurate before any axis rotation.
+
+    Returns
+    -------
+    dict with keys:
+        - ``points``: list of {x, y, ct, comp, sample_id} dicts (normalized coords)
+        - ``max_r``: float, scale factor used for normalisation
+    """
+    df, axis_fields, _ = prepare_grandscatter_data(cfg_path)
+    ndim = len(axis_fields)
+    H = df[axis_fields].to_numpy(dtype=np.float64)
+
+    # Circular basis — identical to grandscatter's _initial circularBasis logic
+    scale = np.sqrt(2.0 / ndim)
+    angles = 2.0 * np.pi * np.arange(ndim) / ndim
+    basis_x = scale * np.cos(angles)
+    basis_y = scale * np.sin(angles)
+
+    x_proj = H @ basis_x
+    y_proj = H @ basis_y
+    max_r = float(np.max(np.sqrt(x_proj ** 2 + y_proj ** 2))) or 1.0
+    x_n = (x_proj / max_r).tolist()
+    y_n = (y_proj / max_r).tolist()
+    dom_comp = np.argmax(H, axis=1).tolist()
+    cancer_types = df["cancer_type"].tolist()
+
+    points = [
+        {"x": x_n[i], "y": y_n[i], "ct": cancer_types[i], "comp": dom_comp[i]}
+        for i in range(len(df))
+    ]
+    return {"points": points, "max_r": max_r}
 
 
 def create_empty_placeholder_figure(message="Error loading NMF data") -> go.Figure:

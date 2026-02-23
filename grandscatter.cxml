@@ -1,0 +1,5046 @@
+<documents>
+<document index="1">
+<source>.github/workflows/pages.yml</source>
+<document_content>
+name: Deploy examples to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm vite build --base /grandscatter/
+      - run: cp examples/*.arrow dist/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+</document_content>
+</document>
+<document index="2">
+<source>.github/workflows/publish-pypi.yml</source>
+<document_content>
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build python/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: python/dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+</document_content>
+</document>
+<document index="3">
+<source>.gitignore</source>
+<document_content>
+.DS_Store
+__pycache__/
+node_modules/
+dist/
+python/grandscatter/static/
+.ipynb_checkpoints/
+
+</document_content>
+</document>
+<document index="4">
+<source>LICENSE</source>
+<document_content>
+MIT License
+
+Copyright (c) 2026 Nezar Abdennur
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+</document_content>
+</document>
+<document index="5">
+<source>README.md</source>
+<document_content>
+# Grandscatter
+
+> To deal with a 14-dimensional space, visualize a 3-D space and say 'fourteen' to yourself very loudly. Everyone does it. - Geoffrey Hinton
+
+Grandscatter is a scatterplot library for interactively exploring high-dimensional datasets as simple projections in two- or three-dimensional space. 
+
+Grandscatter is written in TypeScript. This project also provides a Python-based widget for Jupyter.
+
+In grandscatter, the projection plane (or space) is stationary and you travel within data space (i.e., change the visible projection) by _manipulating the data axes around the origin_. You can rotate and reflect the axes manually, or orchestrate high-dimensional "tours" programmatically.
+
+Grandscatter supports two projection modes:
+
+* orthographic: a flat projection where distances within the 2D canvas are the same as in the projected 2D subspace
+* perspective: a 3D projection view, including foreshortening of distal points to improve depth perception
+
+Current supported interactions:
+
+* Drag an axis handle to rotate it
+* Option/alt+click an axis handle to flip its orientation
+* Shift+drag to lasso-select points
+
+This library was originally based on the [Grand Tour](https://doi.org/10.1137/0906011) implementation in Li et al., 2020. [Visualizing Neural Networks with the Grand Tour](https://doi.org/10.23915/distill.00025). Our original implementation was [eigen-tour](https://github.com/abdenlab/eigen-tour).
+
+## Development
+
+To build grandscatter:
+
+```sh
+pnpm install
+pnpm build
+```
+
+To serve the example pages locally:
+
+```sh
+pnpm dev
+```
+
+For widget development, create a Python dev envrionment:
+
+```sh
+cd python
+uv sync
+```
+
+Run the dev server to watch and rebuild the widget assets:
+
+```sh
+pnpm dev:widget
+```
+
+Open JupyterLab or other notebook environment:
+
+```sh
+ANYWIDGET_HMR=1 uv run juptyer lab
+```
+
+Or execute `%env ANYWIDGET_HMR=1` in a cell to activate anywidget's hot module replacement.
+
+</document_content>
+</document>
+<document index="6">
+<source>biome.json</source>
+<document_content>
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": ["**", "!!**/dist"]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab"
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"style": {
+				"noNonNullAssertion": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double"
+		}
+	},
+	"assist": {
+		"enabled": true,
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	}
+}
+
+</document_content>
+</document>
+<document index="7">
+<source>examples/clusters.html</source>
+<document_content>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>5D Clusters - grandscatter</title>
+<style>
+	body {
+		margin: 0;
+		font-family: system-ui, sans-serif;
+		background: #f5f5f5;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+	}
+	h1 { margin-bottom: 0.5rem; }
+	p { color: #666; margin-top: 0; }
+	#plot {
+		width: 1028px;
+		height: 1028px;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+	}
+	#controls {
+		display: flex;
+		gap: 2rem;
+		margin-bottom: 1rem;
+	}
+	.control {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.control label {
+		min-width: 80px;
+	}
+	.control input[type="range"] {
+		width: 150px;
+	}
+	.control .value {
+		min-width: 40px;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+	#data-controls {
+		margin-bottom: 1rem;
+	}
+	#data-controls label {
+		margin-right: 0.5rem;
+	}
+	#data-controls select {
+		padding: 0.25rem 0.5rem;
+		font-size: 1rem;
+	}
+</style>
+</head>
+<body>
+<h1>grandscatter</h1>
+<p>Drag the axis handles to rotate the projection.</p>
+<div id="data-controls">
+	<label for="ndim">Dimensions:</label>
+	<select id="ndim">
+		<option value="2">2D</option>
+		<option value="3" selected>3D</option>
+		<option value="4">4D</option>
+		<option value="5">5D</option>
+	</select>
+	<label for="projection">Projection:</label>
+	<select id="projection">
+		<option value="orthographic" selected>Orthographic</option>
+		<option value="perspective">Perspective</option>
+	</select>
+</div>
+<div id="controls">
+	<div class="control">
+		<label for="cameraZ">Camera Z:</label>
+		<input type="range" id="cameraZ" min="-15" max="15" step="0.1" value="2">
+		<span class="value" id="cameraZValue">5</span>
+	</div>
+	<div class="control">
+		<label for="viewAngle">FOV:</label>
+		<input type="range" id="viewAngle" min="1" max="179" step="1" value="90">
+		<span class="value" id="viewAngleValue">90°</span>
+	</div>
+	<div class="control">
+		<label for="pointSize">Point Size:</label>
+		<input type="range" id="pointSize" min="1" max="50" step="1" value="20">
+		<span class="value" id="pointSizeValue">20</span>
+	</div>
+	<div class="control">
+		<label for="minDepthScale">Min Scale:</label>
+		<input type="range" id="minDepthScale" min="0" max="1" step="0.05" value="0.1">
+		<span class="value" id="minDepthScaleValue">0.1</span>
+	</div>
+	<div class="control">
+		<label for="axisLength">Axis Length:</label>
+		<input type="range" id="axisLength" min="0.5" max="5" step="0.1" value="2">
+		<span class="value" id="axisLengthValue">2</span>
+	</div>
+</div>
+<div id="plot"></div>
+<script type="module">
+import { Scatterplot } from "@grandscatter/core";
+
+// Box-Muller transform for normal random numbers
+function randn() {
+	const u = 1 - Math.random();
+	const v = Math.random();
+	return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+const N = 200; // points per cluster
+const centers5D = [
+	[2, 0, 0, 1, -1],  // Cluster A (red)
+	[-1, 2, -1, 0, 1],  // Cluster B (blue)
+	[0, -2, 2, -1, 0], // Cluster C (green)
+];
+const clusterNames = ["Cluster A", "Cluster B", "Cluster C"];
+const colors = { "Cluster A": "#e41a1c", "Cluster B": "#377eb8", "Cluster C": "#4daf4a" };
+
+function generateData(ndim) {
+	const columns = {};
+	for (let i = 0; i < ndim; i++) {
+		columns[`x${i + 1}`] = [];
+	}
+	const labels = [];
+	const keys = Object.keys(columns);
+
+	for (let c = 0; c < centers5D.length; c++) {
+		for (let i = 0; i < N; i++) {
+			for (let d = 0; d < ndim; d++) {
+				columns[keys[d]].push(centers5D[c][d] + randn() * 0.6);
+			}
+			labels.push(clusterNames[c]);
+		}
+	}
+
+	// Convert to typed arrays
+	for (const key of keys) {
+		columns[key] = new Float64Array(columns[key]);
+	}
+
+	return { columns, labels, colors };
+}
+
+const plot = Scatterplot.create(document.getElementById("plot"), {
+	basePointSize: 20,
+});
+
+// Slider elements
+const cameraZInput = document.getElementById("cameraZ");
+const cameraZValue = document.getElementById("cameraZValue");
+const viewAngleInput = document.getElementById("viewAngle");
+const viewAngleValue = document.getElementById("viewAngleValue");
+const pointSizeInput = document.getElementById("pointSize");
+const pointSizeValue = document.getElementById("pointSizeValue");
+const minDepthScaleInput = document.getElementById("minDepthScale");
+const minDepthScaleValue = document.getElementById("minDepthScaleValue");
+const axisLengthInput = document.getElementById("axisLength");
+const axisLengthValue = document.getElementById("axisLengthValue");
+const ndimSelect = document.getElementById("ndim");
+const projectionSelect = document.getElementById("projection");
+
+// Sync all sliders to the plot's current values
+function syncControls() {
+	cameraZInput.value = plot.cameraZ;
+	cameraZValue.textContent = plot.cameraZ.toFixed(1);
+	viewAngleInput.value = plot.viewAngle;
+	viewAngleValue.textContent = `${Math.round(plot.viewAngle)}°`;
+	pointSizeInput.value = plot.basePointSize;
+	pointSizeValue.textContent = plot.basePointSize;
+	minDepthScaleInput.value = plot.minDepthScale;
+	minDepthScaleValue.textContent = plot.minDepthScale;
+	axisLengthInput.value = plot.axisLength;
+	axisLengthValue.textContent = plot.axisLength.toFixed(1);
+	projectionSelect.value = plot.projection;
+}
+
+plot.loadData(generateData(3));
+syncControls();
+
+// Wire up slider controls
+cameraZInput.addEventListener("input", () => {
+	const val = parseFloat(cameraZInput.value);
+	plot.cameraZ = val;
+	cameraZValue.textContent = val.toFixed(1);
+});
+
+viewAngleInput.addEventListener("input", () => {
+	const val = parseFloat(viewAngleInput.value);
+	plot.viewAngle = val;
+	viewAngleValue.textContent = `${Math.round(val)}°`;
+});
+
+pointSizeInput.addEventListener("input", () => {
+	const val = parseFloat(pointSizeInput.value);
+	plot.basePointSize = val;
+	pointSizeValue.textContent = val;
+});
+
+minDepthScaleInput.addEventListener("input", () => {
+	const val = parseFloat(minDepthScaleInput.value);
+	plot.minDepthScale = val;
+	minDepthScaleValue.textContent = val;
+});
+
+axisLengthInput.addEventListener("input", () => {
+	const val = parseFloat(axisLengthInput.value);
+	plot.axisLength = val;
+	axisLengthValue.textContent = val.toFixed(1);
+});
+
+ndimSelect.addEventListener("change", () => {
+	const val = parseInt(ndimSelect.value, 10);
+	plot.loadData(generateData(val));
+	syncControls();
+});
+
+projectionSelect.addEventListener("change", () => {
+	plot.projection = projectionSelect.value;
+});
+</script>
+</body>
+</html>
+
+</document_content>
+</document>
+<document index="8">
+<source>examples/eigs.html</source>
+<document_content>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HCT116 eigenvectors - grandscatter</title>
+<style>
+	body {
+		margin: 0;
+		font-family: system-ui, sans-serif;
+		background: #f5f5f5;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+	}
+	h1 { margin-bottom: 0.5rem; }
+	p { color: #666; margin-top: 0; }
+	#plot {
+		width: 1028px;
+		height: 1028px;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+	}
+</style>
+</head>
+<body>
+<h1>grandscatter</h1>
+<p>Drag the axis handles to rotate the projection.</p>
+<div id="plot"></div>
+<script type="module">
+import { tableFromIPC } from "https://esm.sh/apache-arrow@18.1.0";
+import { Scatterplot } from "@grandscatter/core";
+
+const table = await tableFromIPC(fetch("eigs.arrow"));
+
+const plot = Scatterplot.create(document.getElementById("plot"), {
+	basePointSize: 2,
+	// axisLength: 1,
+});
+plot.loadArrow(table, {
+  dimensions: ["E1", "E2", "E3", "E4", "E5"], 
+  labelColumn: "name",
+  colors: {
+    "A1": "#e23838", 
+    "A2": "#ffb900", 
+    "B0": "#5ebd3e", 
+    "B1": "#009cdf", 
+    "B4": "#973999"
+  },
+});
+</script>
+</body>
+</html>
+
+</document_content>
+</document>
+<document index="9">
+<source>examples/index.html</source>
+<document_content>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>grandscatter examples</title>
+<style>
+	body {
+		margin: 0;
+		font-family: system-ui, sans-serif;
+		background: #f5f5f5;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+	}
+	h1 { margin-bottom: 0.5rem; }
+	p { color: #666; margin-top: 0; }
+	.examples {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		margin-top: 2rem;
+		width: 100%;
+		max-width: 500px;
+	}
+	.example-card {
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		padding: 1.5rem;
+		text-decoration: none;
+		color: inherit;
+		transition: box-shadow 0.2s, border-color 0.2s;
+	}
+	.example-card:hover {
+		border-color: #999;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+	}
+	.example-card h2 {
+		margin: 0 0 0.5rem 0;
+		font-size: 1.2rem;
+		color: #333;
+	}
+	.example-card p {
+		margin: 0;
+		font-size: 0.9rem;
+	}
+</style>
+</head>
+<body>
+<h1>grandscatter</h1>
+<p>Interactive multi-dimensional scatterplot visualization</p>
+
+<div class="examples">
+	<a class="example-card" href="clusters.html">
+		<h2>5D Clusters</h2>
+		<p>Three Gaussian clusters in 5-dimensional space with draggable projection axes.</p>
+	</a>
+
+	<a class="example-card" href="eigs.html">
+		<h2>HCT116 eigenvectors (Arrow)</h2>
+		<p>Loads data from an Apache Arrow file. Demonstrates loadArrow() API.</p>
+	</a>
+
+	<a class="example-card" href="tour.html">
+		<h2>Grand Tour</h2>
+		<p>Animated rotation through projection space using Givens rotations.</p>
+	</a>
+
+	<a class="example-card" href="z-order-test.html">
+		<h2>Z-Order Test</h2>
+		<p>Verifies depth sorting with colored layers at different z-positions.</p>
+	</a>
+</div>
+</body>
+</html>
+
+</document_content>
+</document>
+<document index="10">
+<source>examples/tour.html</source>
+<document_content>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grand Tour - grandscatter</title>
+<style>
+	body {
+		margin: 0;
+		font-family: system-ui, sans-serif;
+		background: #f5f5f5;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+	}
+	h1 { margin-bottom: 0.5rem; }
+	p { color: #666; margin-top: 0; }
+	#plot {
+		width: 800px;
+		height: 800px;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+	}
+	.controls {
+		margin: 1rem 0;
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+	}
+	button {
+		padding: 0.5rem 1rem;
+		font-size: 1rem;
+		cursor: pointer;
+		border: 1px solid #999;
+		border-radius: 4px;
+		background: white;
+	}
+	button:hover { background: #eee; }
+	button.active { background: #333; color: white; }
+	label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #666;
+	}
+	input[type="range"] { width: 120px; }
+</style>
+</head>
+<body>
+<h1>Grand Tour</h1>
+<p>Continuous rotation through projection space using Givens rotations.</p>
+
+<div class="controls">
+	<button id="toggle">Start Tour</button>
+	<label>
+		Speed:
+		<input type="range" id="speed" min="0.0005" max="0.005" step="0.0005" value="0.0025">
+	</label>
+</div>
+
+<div id="plot"></div>
+
+<script type="module">
+import { tableFromIPC } from "https://esm.sh/apache-arrow@18.1.0";
+import { Scatterplot } from "@grandscatter/core";
+
+const table = await tableFromIPC(fetch("eigs.arrow"));
+
+const plot = Scatterplot.create(document.getElementById("plot"), {
+	basePointSize: 8,
+	axisLength: 3,
+	minDepthScale: 0,
+	projection: "perspective",
+});
+plot.loadArrow(table, {
+  dimensions: ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9"], 
+  labelColumn: "name",
+  colors: {
+    "A1": "#e23838", 
+    "A2": "#ffb900", 
+    "B0": "#5ebd3e", 
+    "B1": "#009cdf", 
+    "B4": "#973999"
+  },
+});
+const ndim = 5;
+
+// --- Grand Tour Animation ---
+
+// Apply Givens rotation in plane (i, j) by angle theta directly to matrix M
+// This is O(n) instead of O(n³) for full matrix multiply
+function applyGivensRotation(M, i, j, theta) {
+	const c = Math.cos(theta);
+	const s = Math.sin(theta);
+	for (let row = 0; row < M.length; row++) {
+		const mi = M[row][i];
+		const mj = M[row][j];
+		M[row][i] = mi * c + mj * s;
+		M[row][j] = -mi * s + mj * c;
+	}
+}
+
+let matrix = plot.getProjectionMatrix();
+let touring = false;
+let animationId = null;
+let speed = 0.0025;
+
+// Build list of all rotation planes with random angular velocities
+const planes = [];
+for (let i = 0; i < ndim; i++) {
+	for (let j = i + 1; j < ndim; j++) {
+		// Each plane gets a unique irrational-ish angular velocity ratio
+		// This ensures the tour doesn't repeat and covers all directions
+		// Use range [0.5π, 1.5π] to avoid angular velocities near 0.
+		// Alternative: // (1 + Math.sqrt(2) * (i + 1) + Math.sqrt(3) * (j + 1)) / 10;
+		const omega = (Math.random() + 0.5) * Math.PI;
+		planes.push({ i, j, omega });
+	}
+}
+
+function animate() {
+	if (!touring) return;
+
+	// Apply small rotations in ALL planes simultaneously
+	// This creates smooth tumbling motion
+	for (const { i, j, omega } of planes) {
+		applyGivensRotation(matrix, i, j, speed * omega);
+	}
+
+	plot.setProjectionMatrix(matrix);
+
+	animationId = requestAnimationFrame(animate);
+}
+
+// Controls
+const toggleBtn = document.getElementById("toggle");
+const speedInput = document.getElementById("speed");
+
+toggleBtn.addEventListener("click", () => {
+	touring = !touring;
+	toggleBtn.textContent = touring ? "Stop Tour" : "Start Tour";
+	toggleBtn.classList.toggle("active", touring);
+
+	if (touring) {
+		matrix = plot.getProjectionMatrix(); // Sync with any manual changes
+		animate();
+	} else if (animationId) {
+		cancelAnimationFrame(animationId);
+	}
+});
+
+speedInput.addEventListener("input", (e) => {
+	speed = parseFloat(e.target.value);
+});
+
+// Pause tour when user drags an axis
+plot.on("projection", () => {
+	if (touring) {
+		// Sync matrix when user manually adjusts
+		matrix = plot.getProjectionMatrix();
+	}
+});
+</script>
+</body>
+</html>
+
+</document_content>
+</document>
+<document index="11">
+<source>examples/z-order-test.html</source>
+<document_content>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Z-Order Test</title>
+<style>
+	body {
+		margin: 0;
+		font-family: system-ui, sans-serif;
+		background: #f5f5f5;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+	}
+	h1 { margin-bottom: 0.5rem; }
+	p { color: #666; margin-top: 0; max-width: 600px; }
+	#plot {
+		width: 520px;
+		height: 520px;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+	}
+	#info {
+		font-family: monospace;
+		white-space: pre;
+		background: #222;
+		color: #0f0;
+		padding: 1rem;
+		margin-top: 1rem;
+		border-radius: 4px;
+		width: 520px;
+		box-sizing: border-box;
+		font-size: 13px;
+	}
+</style>
+</head>
+<body>
+<h1>Z-Order Test</h1>
+<p>
+	Two points at the same (x,y) position but different z.
+	<b>Blue (z=+5)</b> should fully occlude <b>Red (z=-5)</b>.
+	Drag axes and check the info panel below.
+</p>
+<div id="plot"></div>
+<div id="info">loading...</div>
+<script type="module">
+import { Scatterplot } from "@grandscatter/core";
+
+// Minimal dataset: 2 points in 3D at same (x,y), different z
+const columns = {
+	x: new Float64Array([0, 0]),
+	y: new Float64Array([0, 0]),
+	z: new Float64Array([-5, 5]),
+};
+const labels = ["Red (z=-5)", "Blue (z=+5)"];
+const colors = {
+	"Red (z=-5)": "#e41a1c",
+	"Blue (z=+5)": "#377eb8",
+};
+
+const plot = Scatterplot.create(document.getElementById("plot"), {
+	basePointSize: 40,
+	axisLength: 2,
+});
+
+plot.loadData({ columns, labels, colors });
+
+// Set identity projection so z-column is [0,0,1]
+plot.setProjectionMatrix([
+	[1, 0, 0],
+	[0, 1, 0],
+	[0, 0, 1],
+]);
+
+const info = document.getElementById("info");
+
+function dot(a, b) {
+	return a.reduce((s, v, i) => s + v * b[i], 0);
+}
+
+function updateInfo() {
+	const M = plot.getProjectionMatrix();
+	const col2 = M.map(row => row[2]);
+
+	// z-values for each point: dot(data, col2)
+	const data = [[0, 0, -5], [0, 0, 5]];
+	const zRed = dot(data[0], col2);
+	const zBlue = dot(data[1], col2);
+
+	// determinant (3x3)
+	const det =
+		M[0][0] * (M[1][1]*M[2][2] - M[1][2]*M[2][1]) -
+		M[0][1] * (M[1][0]*M[2][2] - M[1][2]*M[2][0]) +
+		M[0][2] * (M[1][0]*M[2][1] - M[1][1]*M[2][0]);
+
+	const sign = det >= 0 ? 1 : -1;
+	const correctedZRed = sign * zRed;
+	const correctedZBlue = sign * zBlue;
+
+	const topColor = correctedZBlue > correctedZRed ? "BLUE" : "RED";
+
+	info.textContent =
+`col2:  [${col2.map(v => v.toFixed(3)).join(", ")}]
+det:   ${det.toFixed(4)}
+sign:  ${sign}
+z_red: ${zRed.toFixed(3)}  (corrected: ${correctedZRed.toFixed(3)})
+z_blu: ${zBlue.toFixed(3)}  (corrected: ${correctedZBlue.toFixed(3)})
+sort → ${topColor} on top (drawn last)`;
+}
+
+plot.on("projection", updateInfo);
+setTimeout(updateInfo, 100);
+</script>
+</body>
+</html>
+
+</document_content>
+</document>
+<document index="12">
+<source>package.json</source>
+<document_content>
+{
+	"name": "@grandscatter/core",
+	"version": "0.2.1",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"packageManager": "pnpm@9.15.3",
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsup",
+		"build:widget": "esbuild python/afm/widget.ts --bundle --format=esm --minify --outdir=python/grandscatter/static --alias:@grandscatter/core=./src/index.ts",
+		"dev": "vite",
+		"dev:widget": "esbuild python/afm/widget.ts --bundle --format=esm --outdir=python/grandscatter/static --alias:@grandscatter/core=./src/index.ts --sourcemap=inline --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"check": "biome check",
+		"format": "biome check --write"
+	},
+	"devDependencies": {
+		"@anywidget/types": "^0.2.0",
+		"@biomejs/biome": "^2.3.14",
+		"@types/d3-color": "^3.1.3",
+		"@types/d3-drag": "^3.0.7",
+		"@types/d3-scale": "^4.0.8",
+		"@types/d3-scale-chromatic": "^3.1.0",
+		"@types/d3-selection": "^3.0.11",
+		"d3-color": "^3.1.0",
+		"d3-drag": "^3.0.0",
+		"d3-scale": "^4.0.2",
+		"d3-scale-chromatic": "^3.1.0",
+		"d3-selection": "^3.0.0",
+		"apache-arrow": "^18.0.0",
+		"esbuild": "^0.24.0",
+		"tsup": "^8.0.0",
+		"typescript": "^5.3.0",
+		"vite": "^6.0.0",
+		"vitest": "^1.0.0"
+	}
+}
+
+</document_content>
+</document>
+<document index="13">
+<source>python/README.md</source>
+<document_content>
+# Grandscatter
+
+Interactive multidimensional scatterplot widget for Jupyter notebooks. Rotate projection axes by dragging to explore high-dimensional point clouds with correct linear projections at all times.
+
+Built on [anywidget](https://anywidget.dev) and WebGL.
+
+## Installation
+
+```bash
+pip install grandscatter
+```
+
+## Quick start
+
+```python
+from grandscatter import Scatter
+import pandas as pd
+
+df = pd.read_csv("my_data.csv")
+
+widget = Scatter(
+    df,
+    axis_fields=["x1", "x2", "x3", "x4", "x5"],
+    label_field="category",
+    label_colors={"A": "#e23838", "B": "#2196f3", "C": "#4caf50"},
+)
+widget
+```
+
+## Features
+
+- **Interactive axis rotation** -- drag axis handles to rotate the projection and explore your data from any angle.
+- **Orthogonal projections** -- the projection matrix is always kept orthonormal, ensuring geometrically correct linear projections.
+- **Perspective and orthographic modes** -- switch between projection types on the fly.
+- **WebGL rendering** -- fast, anti-aliased point rendering with depth sorting.
+- **Categorical legend** -- click legend items to highlight categories.
+- **Live trait sync** -- update properties like `projection`, `axis_length`, `view_angle`, and `base_point_size` from Python and see changes reflected immediately.
+
+## API
+
+### `Scatter(df, axis_fields, label_field, label_colors, **kwargs)`
+
+| Parameter | Type | Description |
+|---|---|---|
+| `df` | `pd.DataFrame` | Input data |
+| `axis_fields` | `list[str]` | Column names to use as projection dimensions |
+| `label_field` | `str` | Column name for categorical labels |
+| `label_colors` | `dict[str, str]` or `list[str]` | Mapping of category names to hex colors, or a list of colors in category order |
+| `projection` | `str` | `"orthographic"` (default) or `"perspective"` |
+| `axis_length` | `float` or `None` | Length of axis lines (`None` for auto) |
+| `camera_z` | `float` or `None` | Camera z-position for perspective mode |
+| `view_angle` | `float` | Field of view in degrees (default `45`) |
+| `base_point_size` | `float` | Point radius in pixels (default `6`) |
+
+All keyword parameters are traitlets and can be updated after creation:
+
+```python
+widget.projection = "perspective"
+widget.base_point_size = 4
+widget.view_angle = 90
+```
+
+## License
+
+MIT
+
+</document_content>
+</document>
+<document index="14">
+<source>python/afm/tsconfig.json</source>
+<document_content>
+{
+	"compilerOptions": {
+		"module": "ESNext",
+		"target": "ES2020",
+		"moduleResolution": "bundler",
+		"lib": ["DOM", "DOM.Iterable", "ES2020"],
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"paths": {
+			"@grandscatter/core": ["../../src/index.ts"]
+		}
+	},
+	"include": ["./**/*.ts"]
+}
+
+</document_content>
+</document>
+<document index="15">
+<source>python/afm/widget.css</source>
+<document_content>
+.grandscatter-widget {
+	width: 100%;
+	height: 800px;
+}
+
+</document_content>
+</document>
+<document index="16">
+<source>python/afm/widget.ts</source>
+<document_content>
+import type { RenderProps } from "@anywidget/types";
+import { Scatterplot } from "@grandscatter/core";
+import { tableFromIPC } from "apache-arrow";
+
+import "./widget.css";
+
+interface Model {
+	data: DataView;
+	axis_fields: string[];
+	label_field: string;
+	label_colors: Record<string, string>;
+	projection: "orthographic" | "perspective";
+	axis_length: number | null;
+	camera_z: number | null;
+	view_angle: number;
+	base_point_size: number;
+	selected_points: number[];
+}
+
+export default {
+	render({ model, el }: RenderProps<Model>) {
+		const container = document.createElement("div");
+		container.classList.add("grandscatter-widget");
+		el.appendChild(container);
+
+		const table = tableFromIPC(model.get("data").buffer);
+		const plot = Scatterplot.create(container, {
+			projection: model.get("projection"),
+			viewAngle: model.get("view_angle"),
+			basePointSize: model.get("base_point_size"),
+		});
+		plot.loadArrow(table, {
+			dimensions: model.get("axis_fields"),
+			labelColumn: model.get("label_field"),
+			colors: model.get("label_colors"),
+		});
+
+		model.on("change:projection", () => {
+			plot.projection = model.get("projection");
+		});
+		model.on("change:axis_length", () => {
+			const v = model.get("axis_length");
+			if (v != null) plot.axisLength = v;
+		});
+		model.on("change:camera_z", () => {
+			const v = model.get("camera_z");
+			if (v != null) plot.cameraZ = v;
+		});
+		model.on("change:view_angle", () => {
+			plot.viewAngle = model.get("view_angle");
+		});
+		model.on("change:base_point_size", () => {
+			plot.basePointSize = model.get("base_point_size");
+		});
+		model.on("change:selected_points", () => {
+			plot.select(model.get("selected_points"));
+		});
+
+		// Sync lasso selection from JS → Python.
+		plot.on("lasso", ({ indices }) => {
+			model.set("selected_points", indices);
+			model.save_changes();
+		});
+
+		return () => plot.destroy();
+	},
+};
+
+</document_content>
+</document>
+<document index="17">
+<source>python/grandscatter/__init__.py</source>
+<document_content>
+from io import BytesIO
+import importlib.metadata
+import pathlib
+
+import anywidget
+import traitlets
+import pandas as pd
+import pyarrow as pa
+
+try:
+    __version__ = importlib.metadata.version("grandscatter")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "unknown"
+
+
+def arrow_from_pandas(df):
+    table = pa.Table.from_pandas(df)
+    with BytesIO() as stream:
+        writer = pa.ipc.new_file(stream, table.schema)
+        writer.write_table(table)
+        writer.close()
+        return stream.getvalue()
+
+
+class Scatter(anywidget.AnyWidget):
+    _esm = pathlib.Path(__file__).parent / "static" / "widget.js"
+    _css = pathlib.Path(__file__).parent / "static" / "widget.css"
+    data = traitlets.Bytes().tag(sync=True)
+    axis_fields = traitlets.List().tag(sync=True)
+    label_field = traitlets.Unicode().tag(sync=True)
+    label_colors = traitlets.Dict().tag(sync=True)
+    projection = traitlets.Unicode("orthographic").tag(sync=True)
+    axis_length = traitlets.Float(None, allow_none=True).tag(sync=True)
+    camera_z = traitlets.Float(None, allow_none=True).tag(sync=True)
+    view_angle = traitlets.Float(45).tag(sync=True)
+    base_point_size = traitlets.Float(6).tag(sync=True)
+    selected_points = traitlets.List(traitlets.Int(), []).tag(sync=True)
+
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        axis_fields: list[str],
+        label_field: str,
+        label_colors: dict[str, str] | list[str],
+        *,
+        projection: str = "orthographic",
+        axis_length: float | None = None,
+        camera_z: float | None = None,
+        view_angle: float = 45,
+        base_point_size: float = 6,
+        **kwargs
+    ):
+
+        if not all(field in df.columns for field in axis_fields):
+            raise ValueError("`axis_fields` must be a subset of df columns")
+
+        if label_field not in df.columns:
+            raise ValueError("`label_field` must be a column in df")
+
+        if not isinstance(df[label_field].dtype, pd.CategoricalDtype):
+            df[label_field] = df[label_field].astype("category")
+
+        label_cat = df[label_field].cat.categories
+        if isinstance(label_colors, dict):
+            for cat in label_cat:
+                if cat not in label_colors:
+                    raise ValueError(
+                        "`label_field` categories must be keys in `label_colors` dict"
+                    )
+        elif isinstance(label_colors, list):
+            label_colors = dict(zip(label_cat, label_colors))
+        else:
+            raise ValueError("`label_colors` must be a list or a dict")
+
+        super().__init__(
+            data=arrow_from_pandas(df[[label_field, *axis_fields]]),
+            axis_fields=axis_fields,
+            label_field=label_field,
+            label_colors=label_colors,
+            projection=projection,
+            axis_length=axis_length,
+            camera_z=camera_z,
+            view_angle=view_angle,
+            base_point_size=base_point_size,
+            **kwargs,
+        )
+
+</document_content>
+</document>
+<document index="18">
+<source>python/notebooks/README.md</source>
+<document_content>
+# Grandscatter example notebooks
+
+Running Jupyter notebooks in JupyterLab:
+
+```sh
+uv run jupyter lab
+```
+
+Running a marimo notebook locally (Python kernel):
+
+```sh
+uv run marimo run example.py  # app mode
+# or
+uv run marimo edit example.py  # edit mode
+```
+
+Building and serving a marimo WASM notebook (Pyodide kernel):
+
+```sh
+uv run marimo export html-wasm --mode run -o html example_wasm.py  # build for app mode
+# or
+uv run marimo export html-wasm --mode edit -o html example_wasm.py  # build for edit mode
+# then
+uv run python -m http.server --directory html
+```
+
+</document_content>
+</document>
+<document index="19">
+<source>python/notebooks/example.ipynb</source>
+<document_content>
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "d914a64d-3ab6-4d96-8ec0-d19907e015b7",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "env: ANYWIDGET_HMR=1\n"
+     ]
+    }
+   ],
+   "source": [
+    "%env ANYWIDGET_HMR=1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "d9139ed6-d34d-4d4b-bcaa-d70850cd4abd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from grandscatter import Scatter\n",
+    "import pandas as pd\n",
+    "import pyarrow as pa"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "ccc526bd-21f4-4a83-ae38-c7ff482804cb",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>chrom</th>\n",
+       "      <th>start</th>\n",
+       "      <th>end</th>\n",
+       "      <th>kmeans8_5</th>\n",
+       "      <th>name</th>\n",
+       "      <th>color</th>\n",
+       "      <th>E0</th>\n",
+       "      <th>E1</th>\n",
+       "      <th>E2</th>\n",
+       "      <th>E3</th>\n",
+       "      <th>E4</th>\n",
+       "      <th>E5</th>\n",
+       "      <th>E6</th>\n",
+       "      <th>E7</th>\n",
+       "      <th>E8</th>\n",
+       "      <th>E9</th>\n",
+       "      <th>__index_level_0__</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>chr1</td>\n",
+       "      <td>900000</td>\n",
+       "      <td>950000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.44</td>\n",
+       "      <td>0.05</td>\n",
+       "      <td>0.23</td>\n",
+       "      <td>0.09</td>\n",
+       "      <td>0.44</td>\n",
+       "      <td>0.86</td>\n",
+       "      <td>0.19</td>\n",
+       "      <td>0.36</td>\n",
+       "      <td>0.64</td>\n",
+       "      <td>0.39</td>\n",
+       "      <td>18</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>chr1</td>\n",
+       "      <td>950000</td>\n",
+       "      <td>1000000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.47</td>\n",
+       "      <td>0.09</td>\n",
+       "      <td>0.26</td>\n",
+       "      <td>0.12</td>\n",
+       "      <td>0.46</td>\n",
+       "      <td>0.85</td>\n",
+       "      <td>0.26</td>\n",
+       "      <td>0.39</td>\n",
+       "      <td>0.68</td>\n",
+       "      <td>0.31</td>\n",
+       "      <td>19</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>chr1</td>\n",
+       "      <td>1000000</td>\n",
+       "      <td>1050000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.44</td>\n",
+       "      <td>0.11</td>\n",
+       "      <td>0.28</td>\n",
+       "      <td>0.15</td>\n",
+       "      <td>0.46</td>\n",
+       "      <td>0.82</td>\n",
+       "      <td>0.28</td>\n",
+       "      <td>0.40</td>\n",
+       "      <td>0.65</td>\n",
+       "      <td>0.22</td>\n",
+       "      <td>20</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>chr1</td>\n",
+       "      <td>1050000</td>\n",
+       "      <td>1100000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.35</td>\n",
+       "      <td>0.07</td>\n",
+       "      <td>0.25</td>\n",
+       "      <td>0.11</td>\n",
+       "      <td>0.44</td>\n",
+       "      <td>0.86</td>\n",
+       "      <td>0.19</td>\n",
+       "      <td>0.40</td>\n",
+       "      <td>0.59</td>\n",
+       "      <td>0.37</td>\n",
+       "      <td>21</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>chr1</td>\n",
+       "      <td>1100000</td>\n",
+       "      <td>1150000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.42</td>\n",
+       "      <td>0.08</td>\n",
+       "      <td>0.24</td>\n",
+       "      <td>0.11</td>\n",
+       "      <td>0.45</td>\n",
+       "      <td>0.85</td>\n",
+       "      <td>0.23</td>\n",
+       "      <td>0.38</td>\n",
+       "      <td>0.66</td>\n",
+       "      <td>0.35</td>\n",
+       "      <td>22</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>48286</th>\n",
+       "      <td>chr22</td>\n",
+       "      <td>50500000</td>\n",
+       "      <td>50550000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.40</td>\n",
+       "      <td>0.12</td>\n",
+       "      <td>0.12</td>\n",
+       "      <td>0.29</td>\n",
+       "      <td>0.46</td>\n",
+       "      <td>0.89</td>\n",
+       "      <td>0.61</td>\n",
+       "      <td>0.34</td>\n",
+       "      <td>0.78</td>\n",
+       "      <td>0.28</td>\n",
+       "      <td>57502</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>48287</th>\n",
+       "      <td>chr22</td>\n",
+       "      <td>50550000</td>\n",
+       "      <td>50600000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.38</td>\n",
+       "      <td>0.12</td>\n",
+       "      <td>0.11</td>\n",
+       "      <td>0.30</td>\n",
+       "      <td>0.44</td>\n",
+       "      <td>0.87</td>\n",
+       "      <td>0.59</td>\n",
+       "      <td>0.35</td>\n",
+       "      <td>0.76</td>\n",
+       "      <td>0.37</td>\n",
+       "      <td>57503</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>48288</th>\n",
+       "      <td>chr22</td>\n",
+       "      <td>50600000</td>\n",
+       "      <td>50650000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.41</td>\n",
+       "      <td>0.10</td>\n",
+       "      <td>0.09</td>\n",
+       "      <td>0.31</td>\n",
+       "      <td>0.41</td>\n",
+       "      <td>0.81</td>\n",
+       "      <td>0.61</td>\n",
+       "      <td>0.33</td>\n",
+       "      <td>0.74</td>\n",
+       "      <td>0.36</td>\n",
+       "      <td>57504</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>48289</th>\n",
+       "      <td>chr22</td>\n",
+       "      <td>50650000</td>\n",
+       "      <td>50700000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.38</td>\n",
+       "      <td>0.10</td>\n",
+       "      <td>0.12</td>\n",
+       "      <td>0.31</td>\n",
+       "      <td>0.43</td>\n",
+       "      <td>0.79</td>\n",
+       "      <td>0.61</td>\n",
+       "      <td>0.34</td>\n",
+       "      <td>0.74</td>\n",
+       "      <td>0.42</td>\n",
+       "      <td>57505</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>48290</th>\n",
+       "      <td>chr22</td>\n",
+       "      <td>50700000</td>\n",
+       "      <td>50750000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>A1</td>\n",
+       "      <td>#e23838</td>\n",
+       "      <td>0.41</td>\n",
+       "      <td>0.09</td>\n",
+       "      <td>0.08</td>\n",
+       "      <td>0.31</td>\n",
+       "      <td>0.41</td>\n",
+       "      <td>0.79</td>\n",
+       "      <td>0.58</td>\n",
+       "      <td>0.32</td>\n",
+       "      <td>0.72</td>\n",
+       "      <td>0.50</td>\n",
+       "      <td>57506</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>48291 rows × 17 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "       chrom     start       end  kmeans8_5 name    color    E0    E1    E2  \\\n",
+       "0       chr1    900000    950000          0   A1  #e23838  0.44  0.05  0.23   \n",
+       "1       chr1    950000   1000000          0   A1  #e23838  0.47  0.09  0.26   \n",
+       "2       chr1   1000000   1050000          0   A1  #e23838  0.44  0.11  0.28   \n",
+       "3       chr1   1050000   1100000          0   A1  #e23838  0.35  0.07  0.25   \n",
+       "4       chr1   1100000   1150000          0   A1  #e23838  0.42  0.08  0.24   \n",
+       "...      ...       ...       ...        ...  ...      ...   ...   ...   ...   \n",
+       "48286  chr22  50500000  50550000          0   A1  #e23838  0.40  0.12  0.12   \n",
+       "48287  chr22  50550000  50600000          0   A1  #e23838  0.38  0.12  0.11   \n",
+       "48288  chr22  50600000  50650000          0   A1  #e23838  0.41  0.10  0.09   \n",
+       "48289  chr22  50650000  50700000          0   A1  #e23838  0.38  0.10  0.12   \n",
+       "48290  chr22  50700000  50750000          0   A1  #e23838  0.41  0.09  0.08   \n",
+       "\n",
+       "         E3    E4    E5    E6    E7    E8    E9  __index_level_0__  \n",
+       "0      0.09  0.44  0.86  0.19  0.36  0.64  0.39                 18  \n",
+       "1      0.12  0.46  0.85  0.26  0.39  0.68  0.31                 19  \n",
+       "2      0.15  0.46  0.82  0.28  0.40  0.65  0.22                 20  \n",
+       "3      0.11  0.44  0.86  0.19  0.40  0.59  0.37                 21  \n",
+       "4      0.11  0.45  0.85  0.23  0.38  0.66  0.35                 22  \n",
+       "...     ...   ...   ...   ...   ...   ...   ...                ...  \n",
+       "48286  0.29  0.46  0.89  0.61  0.34  0.78  0.28              57502  \n",
+       "48287  0.30  0.44  0.87  0.59  0.35  0.76  0.37              57503  \n",
+       "48288  0.31  0.41  0.81  0.61  0.33  0.74  0.36              57504  \n",
+       "48289  0.31  0.43  0.79  0.61  0.34  0.74  0.42              57505  \n",
+       "48290  0.31  0.41  0.79  0.58  0.32  0.72  0.50              57506  \n",
+       "\n",
+       "[48291 rows x 17 columns]"
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df = pd.read_feather(\"../../examples/eigs.arrow\")\n",
+    "df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "42ce56a6-f36b-48d7-ac52-a0ba709217cc",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "colors = dict(\n",
+    "    zip(\n",
+    "        df[[\"name\", \"color\"]].drop_duplicates()[\"name\"].tolist(),\n",
+    "        df[[\"name\", \"color\"]].drop_duplicates()[\"color\"].tolist()\n",
+    "    )\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "e7a07069-e80e-4d99-9d49-71424250cf2e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "widget = Scatter(df, [\"E1\", \"E2\", \"E3\", \"E4\", \"E5\"], \"name\", colors, projection=\"perspective\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "adb1e6eb-ee2b-4712-916d-e2f0a1d3afce",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/vnd.jupyter.widget-view+json": {
+       "model_id": "60b809de9cb443b9916a3213fb1620cb",
+       "version_major": 2,
+       "version_minor": 1
+      },
+      "text/plain": [
+       "<grandscatter.Scatter object at 0x128a62120>"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "widget"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "5a6ef4fc-4185-4394-9b85-1477fdc050f1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "widget.axis_length = 5"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7bdec1c0-4341-40a5-adc4-1ec834f7b2e4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "widget.view_angle = 90"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d29a9746-2ff0-4172-8a24-237d2cd8e74f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "widget.projection = \"orthographic\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "be93c668-336a-4bd4-bdff-4a299c164e2f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "widget.base_point_size = 4"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fcfb0cfb-37a2-4a34-8a3b-650e31f24eac",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.13.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
+
+</document_content>
+</document>
+<document index="20">
+<source>python/notebooks/example.py</source>
+<document_content>
+import marimo
+
+__generated_with = "0.19.11"
+app = marimo.App()
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Grandscatter
+
+    Grandscatter is a scatterplot library for interactively exploring high-dimensional datasets as simple linear projections in two- or three-dimensional space.
+
+    Think of grandscatter as an alternative or complement to non-linear visual projection methods like t-SNE or UMAP.
+
+    In grandscatter, the projection plane (or space) is stationary and you travel within data space (i.e., change the visible projection) by _manipulating the data axes around the origin_. You can rotate and reflect the axes manually, or orchestrate high-dimensional "tours" programmatically.
+    """)
+    return
+
+
+@app.cell
+def _():
+    import os
+    os.environ['ANYWIDGET_HMR'] = '1'
+    return
+
+
+@app.cell
+def _():
+    from grandscatter import Scatter
+    import pandas as pd
+    import pyarrow as pa
+    import marimo as mo
+
+    return Scatter, mo, pd
+
+
+@app.cell
+def _(pd):
+    df = pd.read_feather("https://abdenlab.org/grandscatter/eigs.arrow")
+    df
+    return (df,)
+
+
+@app.cell
+def _(df):
+    colors = dict(
+        zip(
+            df[["name", "color"]].drop_duplicates()["name"].tolist(),
+            df[["name", "color"]].drop_duplicates()["color"].tolist()
+        )
+    )
+    return (colors,)
+
+
+@app.cell
+def _(Scatter, colors, df, mo):
+    widget = mo.ui.anywidget(
+        Scatter(df, ["E1", "E2", "E3", "E4", "E5"], "name", colors)
+    )
+    return (widget,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Controls
+
+    ### Axis handles
+
+    Click an axis handle to rotate it. <span style="color: red">Red</span> handles point in the positive direction, <span style="color: blue">blue</span> handles point in the negative direction.
+
+    Alt+click (option+click) on an axis handle to flip its orientation.
+
+    ### Projection modes
+
+    The default projection is **orthographic**, which is essentially a 2D projection that preserves distances in the 2D subspace being displayed. While there is a coherent z-stacking of points along a third axis pointing towards you, there are no other depth effects.
+
+    Toggle to **perspective** mode below for a 3D projection, which activates the camera options below that control zoom and depth cues.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    ui_proj = mo.ui.dropdown(options=["orthographic", "perspective"], value="orthographic", allow_select_none=False, label="projection")
+    ui_angle = mo.ui.slider(1, 179, 1, value=45, label="view angle (deg)")
+    ui_camera = mo.ui.slider(-10, 30, 0.2, value=2, label="camera position")
+    ui_ptsize = mo.ui.slider(1, 30, 1, value=4, label="base point size")
+
+    mo.vstack([ui_proj, ui_angle, ui_camera, ui_ptsize])
+    return ui_angle, ui_camera, ui_proj, ui_ptsize
+
+
+@app.cell
+def _(widget):
+    widget
+    return
+
+
+@app.cell
+def _(ui_angle, ui_camera, ui_proj, ui_ptsize, widget):
+    widget.projection = ui_proj.value
+    widget.view_angle = ui_angle.value
+    widget.base_point_size = ui_ptsize.value
+    widget.camera_z = ui_camera.value
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Lasso
+
+    Shift+drag your mouse to select points. The selection (row indices) is accessible to Python through the widget using the `selected_points` trait.
+    """)
+    return
+
+
+@app.cell
+def _(df, widget):
+    df.iloc[widget.selected_points]
+    return
+
+
+if __name__ == "__main__":
+    app.run()
+
+</document_content>
+</document>
+<document index="21">
+<source>python/notebooks/example_wasm.py</source>
+<document_content>
+import marimo
+
+__generated_with = "0.19.11"
+app = marimo.App()
+
+
+@app.cell
+def _():
+    import os
+    os.environ['ANYWIDGET_HMR'] = '1'
+    return
+
+
+@app.cell
+def _():
+    import marimo as mo
+
+    return (mo,)
+
+
+@app.cell
+async def _():
+    import micropip
+    await micropip.install("anywidget")
+    await micropip.install("grandscatter", deps=False)
+
+    from grandscatter import Scatter
+
+    return (Scatter,)
+
+
+@app.cell
+def _():
+    import pandas as pd
+    import pyarrow as pa
+
+    return (pd,)
+
+
+@app.cell
+def _(pd):
+    df = pd.read_feather("https://abdenlab.org/grandscatter/eigs.arrow")
+    df
+    return (df,)
+
+
+@app.cell
+def _(df):
+    colors = dict(
+        zip(
+            df[["name", "color"]].drop_duplicates()["name"].tolist(),
+            df[["name", "color"]].drop_duplicates()["color"].tolist()
+        )
+    )
+    return (colors,)
+
+
+@app.cell
+def _(Scatter, colors, df, mo):
+    widget = mo.ui.anywidget(
+        Scatter(df, ["E1", "E2", "E3", "E4", "E5"], "name", colors, projection="perspective")
+    )
+    return (widget,)
+
+
+@app.cell
+def _(widget):
+    widget
+    return
+
+
+@app.cell
+def _(widget):
+    widget.axis_length = 2
+    return
+
+
+@app.cell
+def _(widget):
+    widget.view_angle = 90
+    return
+
+
+@app.cell
+def _(widget):
+    widget.projection = "orthographic"
+    return
+
+
+@app.cell
+def _(widget):
+    widget.base_point_size = 4
+    return
+
+
+@app.cell
+def _(df, widget):
+    df.iloc[widget.selected_points]
+    return
+
+
+if __name__ == "__main__":
+    app.run()
+
+</document_content>
+</document>
+<document index="22">
+<source>python/pyproject.toml</source>
+<document_content>
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "grandscatter"
+version = "0.2.1"
+description = "Interactive multidimensional scatterplot Jupyter widget"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Nezar Abdennur", email = "nabdennur@gmail.com" },
+]
+keywords = [
+    "jupyter",
+    "widget",
+    "scatterplot",
+    "visualization",
+    "multidimensional",
+    "grand-tour",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "anywidget>=0.9.21",
+    "pandas>=3.0.0",
+    "pyarrow>=23.0.1",
+    "traitlets>=5.14.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/abdenlab/grandscatter"
+Repository = "https://github.com/abdenlab/grandscatter"
+"Bug Tracker" = "https://github.com/abdenlab/grandscatter/issues"
+
+[dependency-groups]
+dev = [
+    "anywidget[dev]>=0.9.21",
+    "watchfiles",
+    "jupyterlab",
+    "marimo>=0.19.11",
+]
+
+[tool.hatch.envs.default]
+features = ["dev"]
+
+[tool.hatch.build]
+only-packages = true
+artifacts = ["grandscatter/static/*"]
+
+[tool.hatch.build.hooks.jupyter-builder]
+build-function = "hatch_jupyter_builder.npm_builder"
+ensured-targets = ["grandscatter/static/widget.js"]
+skip-if-exists = ["grandscatter/static/widget.js"]
+dependencies = ["hatch-jupyter-builder>=0.5.0"]
+
+[tool.hatch.build.hooks.jupyter-builder.build-kwargs]
+npm = "pnpm"
+build_cmd = "build:widget"
+path = ".."
+
+</document_content>
+</document>
+<document index="23">
+<source>src/Emitter.ts</source>
+<document_content>
+type Listener<T> = (event: T) => void;
+
+export class Emitter<Events extends { [K in keyof Events]: unknown }> {
+	#listeners = new Map<string, Set<(arg: never) => void>>();
+
+	on<K extends keyof Events & string>(
+		event: K,
+		fn: Listener<Events[K]>,
+	): () => void {
+		if (!this.#listeners.has(event)) {
+			this.#listeners.set(event, new Set());
+		}
+		this.#listeners.get(event)!.add(fn);
+		return () => {
+			this.#listeners.get(event)?.delete(fn);
+		};
+	}
+
+	emit<K extends keyof Events & string>(event: K, data: Events[K]): void {
+		for (const fn of this.#listeners.get(event) ?? []) {
+			(fn as Listener<Events[K]>)(data);
+		}
+	}
+}
+
+</document_content>
+</document>
+<document index="24">
+<source>src/Lasso.ts</source>
+<document_content>
+import type { Selection } from "d3-selection";
+
+export interface LassoCallbacks {
+	onSelect: (indices: number[]) => void;
+	onClear: () => void;
+}
+
+/**
+ * Find original data indices of points inside a polygon using ray-casting.
+ *
+ * Positions are interleaved [x0,y0, x1,y1, ...] in depth-sorted order.
+ * The `order` array maps sorted index → original data index.
+ */
+export function pointsInPolygon(
+	positions: ArrayLike<number>,
+	npoint: number,
+	polygon: [number, number][],
+	order: ArrayLike<number>,
+): number[] {
+	const n = polygon.length;
+	if (n < 3) return [];
+
+	// AABB of the polygon for fast rejection.
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	for (let k = 0; k < n; k++) {
+		const px = polygon[k][0];
+		const py = polygon[k][1];
+		if (px < minX) minX = px;
+		if (px > maxX) maxX = px;
+		if (py < minY) minY = py;
+		if (py > maxY) maxY = py;
+	}
+
+	const result: number[] = [];
+
+	for (let si = 0; si < npoint; si++) {
+		const x = positions[si * 2];
+		const y = positions[si * 2 + 1];
+
+		// AABB pre-filter.
+		if (x < minX || x > maxX || y < minY || y > maxY) continue;
+
+		// Ray-casting: count crossings of a horizontal ray from (x, y) → +∞.
+		let inside = false;
+		for (let i = 0, j = n - 1; i < n; j = i++) {
+			const xi = polygon[i][0];
+			const yi = polygon[i][1];
+			const xj = polygon[j][0];
+			const yj = polygon[j][1];
+			if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+				inside = !inside;
+			}
+		}
+
+		if (inside) {
+			result.push(order[si]);
+		}
+	}
+
+	return result;
+}
+
+/**
+ * SVG lasso overlay with freeform polygon selection.
+ *
+ * Shift+drag on the figure draws a lasso polygon. On pointer up, a
+ * ray-casting point-in-polygon test identifies the enclosed points and
+ * fires the `onSelect` callback with their original data indices.
+ *
+ * Double-click or Escape clears the selection.
+ */
+export class Lasso {
+	#svg: Selection<SVGSVGElement, unknown, null, undefined>;
+	#pathElement: Selection<SVGPathElement, unknown, null, undefined>;
+	#el: HTMLElement;
+	#callbacks: LassoCallbacks;
+
+	// Lasso interaction state.
+	#active = false;
+	#polygon: [number, number][] = [];
+	#pointerId: number | null = null;
+
+	// Snapshot of the latest render state (set by Scatterplot after each frame).
+	#positions: ArrayLike<number> = new Float32Array(0);
+	#npoint = 0;
+	#order: ArrayLike<number> = new Uint32Array(0);
+
+	// Bound event handlers (for add/removeEventListener).
+	#boundPointerDown: (e: PointerEvent) => void;
+	#boundPointerMove: (e: PointerEvent) => void;
+	#boundPointerUp: (e: PointerEvent) => void;
+	#boundDblClick: (e: MouseEvent) => void;
+	#boundKeyDown: (e: KeyboardEvent) => void;
+
+	constructor(
+		figure: Selection<HTMLElement, unknown, null, undefined>,
+		callbacks: LassoCallbacks,
+	) {
+		this.#callbacks = callbacks;
+		this.#el = figure.node()!;
+
+		this.#svg = figure
+			.append("svg")
+			.attr("class", "grandscatter-lasso")
+			.style("position", "absolute")
+			.style("top", "0")
+			.style("left", "0")
+			.style("pointer-events", "none")
+			.style("overflow", "visible");
+
+		this.#pathElement = this.#svg
+			.append("path")
+			.attr("fill", "rgba(100, 149, 237, 0.15)")
+			.attr("stroke", "rgba(100, 149, 237, 0.8)")
+			.attr("stroke-width", "1.5")
+			.attr("stroke-dasharray", "4,3")
+			.style("display", "none");
+
+		this.#boundPointerDown = this.#onPointerDown.bind(this);
+		this.#boundPointerMove = this.#onPointerMove.bind(this);
+		this.#boundPointerUp = this.#onPointerUp.bind(this);
+		this.#boundDblClick = this.#onDblClick.bind(this);
+		this.#boundKeyDown = this.#onKeyDown.bind(this);
+
+		this.#el.addEventListener("pointerdown", this.#boundPointerDown);
+		this.#el.addEventListener("dblclick", this.#boundDblClick);
+		document.addEventListener("keydown", this.#boundKeyDown);
+	}
+
+	/** Provide the current rendered positions so PIP can run on pointer up. */
+	setRenderState(
+		positions: ArrayLike<number>,
+		npoint: number,
+		order: ArrayLike<number>,
+	): void {
+		this.#positions = positions;
+		this.#npoint = npoint;
+		this.#order = order;
+	}
+
+	/** Programmatically clear the lasso selection and path visual. */
+	clear(): void {
+		this.#polygon = [];
+		this.#pathElement.style("display", "none").attr("d", "");
+		if (this.#active) {
+			this.#cancelDrag();
+		}
+		this.#callbacks.onClear();
+	}
+
+	/** Resize the SVG to match the parent element. */
+	resize(): void {
+		const parent = this.#svg.node()?.parentElement;
+		if (!parent) return;
+		this.#svg
+			.attr("width", parent.clientWidth)
+			.attr("height", parent.clientHeight);
+	}
+
+	/** Clean up DOM elements and event listeners. */
+	destroy(): void {
+		this.#el.removeEventListener("pointerdown", this.#boundPointerDown);
+		this.#el.removeEventListener("dblclick", this.#boundDblClick);
+		document.removeEventListener("keydown", this.#boundKeyDown);
+		this.#cancelDrag();
+		this.#svg.remove();
+	}
+
+	// --- Private ---
+
+	#onPointerDown(event: PointerEvent): void {
+		if (!event.shiftKey) return;
+
+		// Don't intercept clicks/drags on axis handles.
+		const target = event.target as Element;
+		if (target.closest(".grandscatter-anchor, .grandscatter-anchor-away")) {
+			return;
+		}
+
+		event.preventDefault();
+		this.#active = true;
+		this.#polygon = [];
+		this.#pointerId = event.pointerId;
+
+		const rect = this.#el.getBoundingClientRect();
+		this.#polygon.push([event.clientX - rect.left, event.clientY - rect.top]);
+
+		this.#pathElement.style("display", null);
+		this.#updatePath();
+
+		this.#el.setPointerCapture(event.pointerId);
+		this.#el.addEventListener("pointermove", this.#boundPointerMove);
+		this.#el.addEventListener("pointerup", this.#boundPointerUp);
+	}
+
+	#onPointerMove(event: PointerEvent): void {
+		if (!this.#active) return;
+		const rect = this.#el.getBoundingClientRect();
+		this.#polygon.push([event.clientX - rect.left, event.clientY - rect.top]);
+		this.#updatePath();
+	}
+
+	#onPointerUp(_event: PointerEvent): void {
+		if (!this.#active) return;
+		this.#active = false;
+		this.#detachDragListeners();
+
+		if (this.#polygon.length < 3) {
+			this.clear();
+			return;
+		}
+
+		const indices = pointsInPolygon(
+			this.#positions,
+			this.#npoint,
+			this.#polygon,
+			this.#order,
+		);
+
+		if (indices.length === 0) {
+			this.clear();
+		} else {
+			this.#callbacks.onSelect(indices);
+		}
+	}
+
+	#onDblClick(_event: MouseEvent): void {
+		if (this.#polygon.length > 0) {
+			this.clear();
+		}
+	}
+
+	#onKeyDown(event: KeyboardEvent): void {
+		if (event.key === "Escape") {
+			if (this.#active) {
+				this.#active = false;
+				this.#detachDragListeners();
+			}
+			if (this.#polygon.length > 0) {
+				this.clear();
+			}
+		}
+	}
+
+	#updatePath(): void {
+		if (this.#polygon.length === 0) return;
+		let d = `M ${this.#polygon[0][0]},${this.#polygon[0][1]}`;
+		for (let i = 1; i < this.#polygon.length; i++) {
+			d += ` L ${this.#polygon[i][0]},${this.#polygon[i][1]}`;
+		}
+		d += " Z";
+		this.#pathElement.attr("d", d);
+	}
+
+	#cancelDrag(): void {
+		if (this.#pointerId !== null) {
+			try {
+				this.#el.releasePointerCapture(this.#pointerId);
+			} catch {
+				// Pointer may already be released.
+			}
+			this.#pointerId = null;
+		}
+		this.#active = false;
+		this.#detachDragListeners();
+	}
+
+	#detachDragListeners(): void {
+		this.#el.removeEventListener("pointermove", this.#boundPointerMove);
+		this.#el.removeEventListener("pointerup", this.#boundPointerUp);
+	}
+}
+
+</document_content>
+</document>
+<document index="25">
+<source>src/Legend.ts</source>
+<document_content>
+import { select } from "d3-selection";
+import { Emitter } from "./Emitter.js";
+
+interface LegendEvents {
+	select: Set<number>;
+	mouseout: Set<number>;
+}
+
+interface LegendOptions {
+	container: HTMLElement;
+	title?: string;
+}
+
+/**
+ * Interactive categorical legend rendered as HTML elements.
+ *
+ * Displays colored circles and text labels for each category. Supports
+ * hover (temporarily highlights a category) and click (toggles persistent
+ * selection). Emits `select` with the set of currently highlighted category
+ * indices, and `mouseout` with the persistent selection when the pointer
+ * leaves a label. The parent component is responsible for translating
+ * these events into rendering changes (e.g. setting `#visibleCategories`).
+ */
+export class Legend {
+	#data: [string, string][]; // [label, hexColor]
+	#emitter = new Emitter<LegendEvents>();
+	#container: HTMLElement;
+	#wrapper: HTMLElement;
+
+	constructor(data: [string, string][], options: LegendOptions) {
+		this.#data = data;
+		this.#container = options.container;
+		const selected = new Set<number>();
+
+		// Create wrapper div
+		this.#wrapper = document.createElement("div");
+		this.#wrapper.className = "grandscatter-legend";
+		this.#wrapper.style.cssText = `
+			padding: 8px 12px;
+			border: 1px solid #c1c1c1;
+			border-radius: 6px;
+			margin: 8px;
+			font-family: system-ui, sans-serif;
+			font-size: 12px;
+		`;
+		this.#container.appendChild(this.#wrapper);
+
+		// Optional title
+		if (options.title) {
+			const titleEl = document.createElement("div");
+			titleEl.className = "grandscatter-legend-title";
+			titleEl.textContent = options.title;
+			titleEl.style.cssText = `
+				font-weight: 600;
+				margin-bottom: 6px;
+				text-align: center;
+			`;
+			this.#wrapper.appendChild(titleEl);
+		}
+
+		// Create items
+		const items = select(this.#wrapper)
+			.selectAll<HTMLDivElement, [string, string]>(".grandscatter-legend-item")
+			.data(this.#data)
+			.enter()
+			.append("div")
+			.attr("class", "grandscatter-legend-item")
+			.style("display", "flex")
+			.style("align-items", "center")
+			.style("gap", "6px")
+			.style("padding", "3px 0")
+			.style("cursor", "pointer")
+			.style("user-select", "none");
+
+		// Color circle
+		items
+			.append("span")
+			.attr("class", "grandscatter-legend-mark")
+			.style("width", "10px")
+			.style("height", "10px")
+			.style("border-radius", "50%")
+			.style("flex-shrink", "0")
+			.style("background-color", ([_, color]) => color);
+
+		// Label text
+		items
+			.append("span")
+			.attr("class", "grandscatter-legend-label")
+			.style("color", "#333")
+			.text(([label]) => label);
+
+		const self = this;
+
+		const restoreAlpha = () => {
+			items.style("opacity", (_, i) =>
+				selected.size === 0 || selected.has(i) ? "1" : "0.3",
+			);
+			self.#emitter.emit("mouseout", selected);
+		};
+
+		items
+			.on("mouseover", function () {
+				const nodes = items.nodes();
+				const i = nodes.indexOf(this);
+				const classes = new Set(selected);
+				if (!classes.has(i)) classes.add(i);
+				self.#emitter.emit("select", classes);
+			})
+			.on("mouseout", restoreAlpha)
+			.on("click", function () {
+				const nodes = items.nodes();
+				const i = nodes.indexOf(this);
+				if (selected.has(i)) {
+					selected.delete(i);
+				} else {
+					selected.add(i);
+				}
+				self.#emitter.emit("select", selected);
+				if (selected.size === data.length) {
+					selected.clear();
+				}
+			});
+	}
+
+	on<E extends keyof LegendEvents>(
+		event: E,
+		callback: (data: LegendEvents[E]) => void,
+	): () => void {
+		return this.#emitter.on(event, callback);
+	}
+
+	resize(): void {
+		// No-op: HTML elements handle their own sizing
+	}
+
+	destroy(): void {
+		this.#wrapper.remove();
+	}
+}
+
+</document_content>
+</document>
+<document index="26">
+<source>src/Overlay.ts</source>
+<document_content>
+import { drag } from "d3-drag";
+import type { Selection } from "d3-selection";
+import { identity } from "./linalg.js";
+import type { Projection } from "./Projection.js";
+import type { Scale } from "./types.js";
+
+const POSITIVE_COLOR = "#e44c4c";
+const NEGATIVE_COLOR = "#3c3c81";
+
+/**
+ * SVG overlay of draggable axis handles.
+ *
+ * Owns the drag-to-projection interaction: on drag, converts pixel deltas
+ * to data-space deltas via scale inverses, updates the Projection directly
+ * via {@link Projection.setAxis}, and notifies the parent via the
+ * `onProjectionChanged` callback. Also positions axis labels at each handle.
+ *
+ * Call {@link init} after construction to create the handles, and
+ * {@link redraw} each frame to reposition them to match the current
+ * projection. The overlay SVG is absolutely positioned over the parent
+ * figure element with `pointer-events: none`; only the anchor `<g>`
+ * groups receive pointer events.
+ */
+export class Overlay {
+	svg: Selection<SVGSVGElement, unknown, null, undefined>;
+	towardsAnchors?: Selection<SVGGElement, string, SVGSVGElement, unknown>;
+	awayAnchors?: Selection<SVGGElement, string, SVGSVGElement, unknown>;
+	#projection: Projection;
+	#sx: Scale;
+	#sy: Scale;
+	#anchorRadius = 8;
+
+	constructor(
+		figure: Selection<HTMLElement, unknown, null, undefined>,
+		projection: Projection,
+		sx: Scale,
+		sy: Scale,
+	) {
+		this.#projection = projection;
+		this.#sx = sx;
+		this.#sy = sy;
+
+		this.svg = figure
+			.insert("svg", ":first-child")
+			.attr("class", "grandscatter-overlay")
+			.style("position", "absolute")
+			.style("top", "0")
+			.style("left", "0")
+			.style("pointer-events", "none")
+			.style("overflow", "visible");
+	}
+
+	get width(): number {
+		return this.svg.node()?.clientWidth ?? 0;
+	}
+
+	get height(): number {
+		return this.svg.node()?.clientHeight ?? 0;
+	}
+
+	resize(): void {
+		const parent = this.svg.node()?.parentElement;
+		if (!parent) return;
+		this.svg
+			.attr("width", parent.clientWidth)
+			.attr("height", parent.clientHeight);
+
+		this.#anchorRadius = Math.max(
+			7,
+			Math.min(10, Math.min(parent.clientWidth, parent.clientHeight) / 50),
+		);
+		this.towardsAnchors?.select("circle").attr("r", this.#anchorRadius);
+		this.awayAnchors?.select("circle").attr("r", this.#anchorRadius / 2);
+	}
+
+	init(
+		dimLabels: string[],
+		callbacks: {
+			onDragStart?: () => void;
+			onDragEnd?: () => void;
+			onProjectionChanged: () => void;
+		},
+	): void {
+		const origin = `translate(${this.#sx(0)}, ${this.#sy(0)})`;
+
+		// Toward-facing anchors (with labels)
+		this.towardsAnchors = this.svg
+			.selectAll<SVGGElement, string>(".grandscatter-anchor")
+			.data(dimLabels)
+			.enter()
+			.append("g")
+			.attr("class", "grandscatter-anchor")
+			.style("pointer-events", "all")
+			.attr("transform", origin);
+
+		this.towardsAnchors
+			.append("circle")
+			.attr("r", this.#anchorRadius)
+			.attr("opacity", 0.8)
+			.attr("stroke", "white")
+			.attr("fill", "gray")
+			.style("cursor", "pointer");
+
+		// Toward-facing anchor labels
+		this.towardsAnchors
+			.append("text")
+			.attr("text-anchor", "middle")
+			.attr("dy", "-0.8em")
+			.attr("fill", "black")
+			.style("font-size", "11px")
+			.style("pointer-events", "none")
+			.text((label) => label);
+
+		// Away-facing anchors (no labels)
+		this.awayAnchors = this.svg
+			.selectAll<SVGGElement, string>(".grandscatter-anchor-away")
+			.data(dimLabels)
+			.enter()
+			.append("g")
+			.attr("class", "grandscatter-anchor-away")
+			.style("pointer-events", "all")
+			.attr("transform", origin);
+
+		this.awayAnchors
+			.append("circle")
+			.attr("r", this.#anchorRadius / 2)
+			.attr("opacity", 0.8)
+			.attr("stroke", "white")
+			.attr("fill", "darkgray")
+			.style("cursor", "pointer");
+
+		// Shared drag behavior factory
+		const self = this;
+		const makeDrag = (nodes: SVGGElement[]) =>
+			drag<SVGGElement, string, unknown>()
+				.on("start", () => {
+					callbacks.onDragStart?.();
+				})
+				.on("drag", function (event) {
+					const i = nodes.indexOf(this);
+					const dx = self.#sx.invert(event.dx) - self.#sx.invert(0);
+					const dy = self.#sy.invert(event.dy) - self.#sy.invert(0);
+					const axis = self.#projection.getAxis(i);
+					axis[0] += dx;
+					axis[1] += dy;
+					self.#projection.setAxis(i, axis);
+					callbacks.onProjectionChanged();
+				})
+				.on("end", () => {
+					callbacks.onDragEnd?.();
+				});
+
+		this.towardsAnchors.call(makeDrag(this.towardsAnchors.nodes()));
+		this.awayAnchors.call(makeDrag(this.awayAnchors.nodes()));
+
+		// Shift-click to flip axis orientation
+		const makeFlipHandler = (nodes: SVGGElement[]) =>
+			function (this: SVGGElement, event: MouseEvent) {
+				if (!event.altKey) return;
+				event.preventDefault();
+				const i = nodes.indexOf(this);
+				self.#projection.flipAxis(i);
+				callbacks.onProjectionChanged();
+			};
+
+		this.towardsAnchors.on(
+			"click",
+			makeFlipHandler(this.towardsAnchors.nodes()),
+		);
+		this.awayAnchors.on("click", makeFlipHandler(this.awayAnchors.nodes()));
+	}
+
+	redraw(axisLength: number): void {
+		if (!this.towardsAnchors || !this.awayAnchors) return;
+		const ndim = this.#projection.ndim;
+
+		const r = axisLength;
+		const signs = this.#projection.axisZSigns();
+
+		// Toward-facing endpoints (flipped by z-sign)
+		const towardData = identity(ndim).map((row, i) =>
+			row.map((v) => v * r * signs[i]),
+		);
+		const towardProjected = this.#projection.projectXY(towardData);
+		const towardPos = towardProjected.map((row) => [
+			this.#sx(row[0]),
+			this.#sy(row[1]),
+		]);
+
+		this.towardsAnchors
+			.attr(
+				"transform",
+				(_, i) => `translate(${towardPos[i][0]}, ${towardPos[i][1]})`,
+			)
+			.select("circle")
+			.attr("fill", (_, i) =>
+				// Toward anchor is positive when sign=+1, negative when sign=-1
+				signs[i] >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR,
+			);
+
+		// Away-facing endpoints (opposite sign)
+		const awayData = identity(ndim).map((row, i) =>
+			row.map((v) => v * r * -signs[i]),
+		);
+		const awayProjected = this.#projection.projectXY(awayData);
+		const awayPos = awayProjected.map((row) => [
+			this.#sx(row[0]),
+			this.#sy(row[1]),
+		]);
+
+		this.awayAnchors
+			.attr(
+				"transform",
+				(_, i) => `translate(${awayPos[i][0]}, ${awayPos[i][1]})`,
+			)
+			.select("circle")
+			.attr("fill", (_, i) =>
+				// Away anchor is negative when sign=+1, positive when sign=-1
+				signs[i] >= 0 ? NEGATIVE_COLOR : POSITIVE_COLOR,
+			);
+	}
+
+	destroy(): void {
+		this.svg.remove();
+	}
+}
+
+</document_content>
+</document>
+<document index="27">
+<source>src/Projection.ts</source>
+<document_content>
+import { circularBasis, clone, dot, matmul, orthogonalize } from "./linalg.js";
+
+/**
+ * Perspective camera that transforms 3D projected coordinates to 2D canvas
+ * coordinates with perspective foreshortening.
+ *
+ * The camera is positioned at `cameraZ` along the depth axis, looking toward
+ * negative z. Points closer to the camera appear larger; points farther away
+ * appear smaller. The `focalLength` controls how strongly depth affects the
+ * projection—shorter focal lengths create stronger perspective distortion.
+ */
+export class PerspectiveCamera {
+	cameraZ: number;
+	focalLength: number;
+	minDepthScale: number;
+
+	constructor(cameraZ = 5, focalLength = 1, minDepthScale = 0.1) {
+		this.cameraZ = cameraZ;
+		this.focalLength = focalLength;
+		this.minDepthScale = minDepthScale;
+	}
+
+	/**
+	 * Convert a view angle (field of view) in degrees to focal length.
+	 * As FOV → 0°, focal length → ∞ (approaches orthographic).
+	 * A 90° FOV gives focal length = 1.
+	 */
+	static fovToFocalLength(viewAngle: number): number {
+		return 1 / Math.tan((viewAngle * Math.PI) / 360);
+	}
+
+	/**
+	 * Convert focal length to view angle (field of view) in degrees.
+	 */
+	static focalLengthToFov(focalLength: number): number {
+		return (Math.atan(1 / focalLength) * 360) / Math.PI;
+	}
+
+	/**
+	 * Project a 3D point to 2D canvas coordinates with perspective.
+	 *
+	 * @param x - x coordinate in projected 3D space
+	 * @param y - y coordinate in projected 3D space
+	 * @param z - z coordinate (depth) in projected 3D space
+	 * @returns [canvasX, canvasY] with perspective applied
+	 */
+	project(x: number, y: number, z: number): [number, number] {
+		const scale = this.focalLength / (this.cameraZ - z);
+		return [x * scale, y * scale];
+	}
+
+	/**
+	 * Compute the depth-based scaling factor for a point at depth z.
+	 * Used to scale point sizes based on distance from camera.
+	 *
+	 * @param z - depth coordinate in projected 3D space
+	 * @returns scaling factor in [minDepthScale, 1]
+	 */
+	depthScale(z: number): number {
+		const scale = this.focalLength / (this.focalLength + (this.cameraZ - z));
+		if (scale < this.minDepthScale) return this.minDepthScale;
+		if (scale > 1) return 1;
+		return scale;
+	}
+
+	/**
+	 * Reference scale at z=0, used to compensate axis length so that
+	 * axes at z=0 have consistent visual length regardless of camera settings.
+	 */
+	get referenceScale(): number {
+		return this.focalLength / this.cameraZ;
+	}
+
+	/**
+	 * Get/set view angle (field of view) in degrees.
+	 * This is an alternative interface to focalLength.
+	 */
+	get viewAngle(): number {
+		return PerspectiveCamera.focalLengthToFov(this.focalLength);
+	}
+
+	set viewAngle(degrees: number) {
+		this.focalLength = PerspectiveCamera.fovToFocalLength(degrees);
+	}
+}
+
+/**
+ * Manages an ndim x ndim orthogonal projection matrix to project
+ * high-dimensional data down to 2D or 3D.
+ *
+ * ## Rows represent the data axes (features/dimensions)
+ * Each row i represents how the i-th axis in data space contributes to the
+ * projection axes. When you drag an axis handle, you are modifying the
+ * corresponding row of the projection matrix. The rows are kept orthogonal via
+ * Gram-Schmidt, so dragging one axis will affect the others to maintain a
+ * valid projection.
+ *
+ * ## Columns represent the projection axes in the canvas (X, Y, Z, +)
+ * Each column j represents the contribution of the j-th data dimension to the
+ * canvas projection axes. Column 0 is the x-axis contribution, column
+ * 1 is the y-axis contribution, and column 2 (if ndim >= 3) is the depth
+ * contribution. Columns 3+ are additional orthogonal directions that are not
+ * displayed.
+ */
+export class Projection {
+	#matrix: number[][];
+	#ndim: number;
+
+	constructor(ndim: number, init?: number[][]) {
+		this.#ndim = ndim;
+		this.#matrix = circularBasis(ndim);
+		if (init) {
+			this.setMatrix(init);
+		}
+	}
+
+	get ndim(): number {
+		return this.#ndim;
+	}
+
+	/** Returns a copy of the current ndim x ndim projection matrix. */
+	getMatrix(): number[][] {
+		return clone(this.#matrix);
+	}
+
+	/** Sets the projection matrix. Input is cloned and orthogonalized. */
+	setMatrix(m: number[][]): void {
+		this.#matrix = orthogonalize(clone(m));
+	}
+
+	/** Returns a copy of the i-th axis vector (row of the matrix). */
+	getAxis(i: number): number[] {
+		return this.#matrix[i].slice();
+	}
+
+	/**
+	 * Flips the i-th axis by negating its row in the projection matrix.
+	 * This reverses which end of the axis faces toward vs away from the viewer.
+	 */
+	flipAxis(i: number): void {
+		for (let j = 0; j < this.#ndim; j++) {
+			this.#matrix[i][j] *= -1;
+		}
+	}
+
+	/**
+	 * Sets the i-th axis vector and re-orthogonalizes the matrix,
+	 * keeping the i-th row as the priority (unchanged after normalization).
+	 *
+	 * If the orthogonalization would flip the z-axis (column 2), we negate
+	 * column 2 to preserve depth ordering stability.
+	 */
+	setAxis(i: number, vec: number[]): void {
+		// Save old column 2 before orthogonalization (if it exists)
+		const oldCol2 = this.#ndim >= 3 ? this.#matrix.map((row) => row[2]) : null;
+
+		this.#matrix[i] = vec.slice();
+		this.#matrix = orthogonalize(this.#matrix, i);
+
+		// Prevent z-axis flip: if column 2 reversed direction, negate it
+		if (oldCol2) {
+			let dotProduct = 0;
+			for (let j = 0; j < this.#ndim; j++) {
+				dotProduct += oldCol2[j] * this.#matrix[j][2];
+			}
+			if (dotProduct < 0) {
+				for (let j = 0; j < this.#ndim; j++) {
+					this.#matrix[j][2] *= -1;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Returns the sign of column 2 for each axis: +1 if the axis
+	 * points toward the viewer, -1 if away. For ndim < 3, returns all +1.
+	 */
+	axisZSigns(): number[] {
+		if (this.#ndim < 3) return new Array(this.#ndim).fill(1);
+		return this.#matrix.map((row) => (row[2] >= 0 ? 1 : -1));
+	}
+
+	/**
+	 * Project data points to 2D.
+	 *
+	 * @param data - npoint x ndim matrix (each row is a data point)
+	 * @returns npoint x 2 matrix (each row is [x, y])
+	 */
+	projectXY(data: number[][]): number[][] {
+		// Extract the first 2 columns of the projection matrix (ndim x 2).
+		const proj = this.#matrix.map((row) => [row[0], row[1]]);
+		// data (npoint x ndim) @ proj (ndim x 2) → npoint x 2
+		return matmul(data, proj);
+	}
+
+	/**
+	 * Compute depth (z) coordinates for each data point using the 3rd
+	 * column of the projection matrix. Returns all zeros if ndim < 3.
+	 */
+	projectZ(data: number[][]): number[] {
+		if (this.#ndim < 3) return new Array(data.length).fill(0);
+		const col2 = this.#matrix.map((row) => row[2]);
+		return data.map((row) => dot(row, col2));
+	}
+
+	/**
+	 * Project data points to 3D.
+	 *
+	 * @param data - npoint x ndim matrix (each row is a data point)
+	 * @returns npoint x 3 matrix (each row is [x, y, z])
+	 */
+	projectXYZ(data: number[][]): number[][] {
+		if (this.#ndim < 3) {
+			// For 2D data, z is always 0
+			const proj = this.#matrix.map((row) => [row[0], row[1]]);
+			return matmul(data, proj).map((row) => [row[0], row[1], 0]);
+		}
+		const proj = this.#matrix.map((row) => [row[0], row[1], row[2]]);
+		return matmul(data, proj);
+	}
+}
+
+</document_content>
+</document>
+<document index="28">
+<source>src/Scatterplot.ts</source>
+<document_content>
+import { rgb } from "d3-color";
+import { scaleLinear } from "d3-scale";
+import { schemeCategory10 } from "d3-scale-chromatic";
+import { select } from "d3-selection";
+import { Emitter } from "./Emitter.js";
+import { Lasso } from "./Lasso.js";
+import { Legend } from "./Legend.js";
+import { columnMaxAbs, identity, neg } from "./linalg.js";
+import { Overlay } from "./Overlay.js";
+import { PerspectiveCamera, Projection } from "./Projection.js";
+import type { ArrowLoadOptions, ArrowTable, Scale } from "./types.js";
+import { WebGLRenderer } from "./WebGLRenderer.js";
+
+export interface ScatterOptions {
+	/** Projection type: "orthographic" (no perspective) or "perspective". Default: "orthographic" */
+	projection?: "orthographic" | "perspective";
+	/** Point diameter in CSS pixels. Default: 6 */
+	basePointSize?: number;
+	/** Minimum depth scaling factor for farthest points. Default: 0.1 */
+	minDepthScale?: number;
+	/** Initial position of axis handles in data coordinates. Default: max data radius */
+	axisLength?: number;
+	/** Camera position along the depth axis. Points with z > cameraZ are hidden. Default: max data radius */
+	cameraZ?: number;
+	/** View angle (field of view) in degrees. Smaller = more zoom. Default: 45 */
+	viewAngle?: number;
+	/** Sort points back-to-front by depth for correct occlusion. Default: true */
+	depthSort?: boolean;
+	/** Show/hide axis labels on handles. Default: true */
+	showAxisLabels?: boolean;
+	/** Show/hide the legend. Default: true if labels are provided. */
+	showLegend?: boolean;
+	/** Legend width in CSS pixels. Default: 120. Ignored if showLegend is false. */
+	legendWidth?: number;
+	/** Canvas width in CSS pixels. Default: fills container */
+	width?: number;
+	/** Canvas height in CSS pixels. Default: fills container */
+	height?: number;
+	/** Margin in CSS pixels. */
+	margin?: Partial<Margin>;
+	/** Device pixel ratio override. Default: window.devicePixelRatio */
+	pixelRatio?: number;
+	/** Canvas background color as CSS color string. Default: "transparent" */
+	background?: string;
+}
+
+interface ResolvedScatterOptions {
+	projection: "orthographic" | "perspective";
+	basePointSize: number;
+	minDepthScale: number;
+	axisLength?: number;
+	cameraZ?: number;
+	viewAngle: number;
+	depthSort: boolean;
+	showAxisLabels: boolean;
+	showLegend?: boolean;
+	legendWidth: number;
+	width?: number;
+	height?: number;
+	margin: Margin;
+	pixelRatio?: number;
+	background: [number, number, number, number];
+}
+
+export interface ScatterData {
+	/** Named columns of numeric data, one per dimension/axis. */
+	columns: Record<string, ArrayLike<number>>;
+	/** Optional categorical labels per point (for coloring/legend). */
+	labels?: ArrayLike<string | number>;
+	/** Optional mapping from label values to hex color strings. */
+	colors?: Record<string, string>;
+}
+
+interface ParsedScatterData {
+	matrix: number[][];
+	npoint: number;
+	ndim: number;
+	dimLabels: string[];
+	labelIndices: number[];
+	hexColors: string[];
+	rgbTuples: [number, number, number][];
+	legendEntries: [string, string][];
+	/** Max Euclidean distance of any point from origin (safe default for cameraZ). */
+	maxDataRadius: number;
+}
+
+export interface ScatterEvents {
+	/** Fired after any projection matrix change (drag, setProjectionMatrix, etc.) */
+	projection: { matrix: number[][] };
+	/** Fired when legend selection changes. */
+	select: { labels: Set<string | number> };
+	/** Fired when lasso selection changes. Contains original data indices. */
+	lasso: { indices: number[] };
+	/** Fired on resize. */
+	resize: { width: number; height: number };
+}
+
+interface Margin {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+}
+
+const DEFAULT_MARGIN: Margin = { top: 22, right: 32, bottom: 40, left: 32 };
+
+/** Parse a CSS color string to [r, g, b, a] with values in 0-1 range. */
+function parseColor(color: string): [number, number, number, number] {
+	const parsed = rgb(color);
+	return [parsed.r / 255, parsed.g / 255, parsed.b / 255, parsed.opacity];
+}
+
+/** Resize the canvas drawing buffer to match physical display pixels. */
+function resizeCanvas(canvas: HTMLCanvasElement, pixelRatio?: number): void {
+	const dpr = pixelRatio ?? window.devicePixelRatio;
+	const displayWidth = Math.round(dpr * canvas.clientWidth);
+	const displayHeight = Math.round(dpr * canvas.clientHeight);
+	if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+		canvas.width = displayWidth;
+		canvas.height = displayHeight;
+	}
+}
+
+/**
+ * Update scales so that the origin is at the center of the canvas
+ * (symmetric domains).
+ */
+export function updateScaleCenter(
+	points: number[][],
+	canvas: HTMLCanvasElement,
+	sx: Scale,
+	sy: Scale,
+	scaleFactor = 1.0,
+	margin: Margin = DEFAULT_MARGIN,
+): void {
+	const vmax = columnMaxAbs(points);
+	const vmin = neg(vmax);
+
+	const xDataRange = 2 * vmax[0];
+	const yDataRange = 2 * vmax[1];
+
+	const yMiddle = (canvas.clientHeight - margin.bottom + margin.top) / 2;
+	const yRadius0 = (canvas.clientHeight - margin.bottom - margin.top) / 2;
+	const xMiddle = (canvas.clientWidth - margin.right + margin.left) / 2;
+	const xRadius0 = (canvas.clientWidth - margin.right - margin.left) / 2;
+
+	const xRadius =
+		Math.min(xRadius0, (yRadius0 / yDataRange) * xDataRange) * scaleFactor;
+	const yRadius =
+		Math.min(yRadius0, (xRadius0 / xDataRange) * yDataRange) * scaleFactor;
+
+	sx.domain([vmin[0], vmax[0]]).range([xMiddle - xRadius, xMiddle + xRadius]);
+	sy.domain([vmin[1], vmax[1]]).range([yMiddle + yRadius, yMiddle - yRadius]);
+}
+
+/**
+ * Interactive multidimensional scatterplot.
+ *
+ * Orchestrates a {@link Projection}, {@link WebGLRenderer}, {@link Overlay},
+ * and {@link Legend}. Uses demand-driven rendering: state mutations
+ * (drag, resize, `setProjectionMatrix`, `setAxis`, legend selection) call
+ * `#markDirty()`, which schedules a single `requestAnimationFrame`.
+ *
+ * Each render frame: projects data to 2D, computes scales, writes positions
+ * and colors into pre-allocated flat typed arrays, issues one WebGL draw call,
+ * and repositions the SVG axis handles.
+ *
+ * Create via the static factory {@link Scatterplot.create}, then call
+ * {@link loadData} to load data and begin rendering.
+ */
+export class Scatterplot {
+	#opts: ResolvedScatterOptions;
+	#data?: ParsedScatterData;
+	#projection!: Projection;
+
+	// Container (figure canvas + legend)
+	#figureWrapper: HTMLElement;
+	#resizeObserver: ResizeObserver;
+
+	// Axes overlay
+	#overlay: Overlay;
+	#figure: ReturnType<typeof select<HTMLElement, unknown>>;
+	#sx: Scale;
+	#sy: Scale;
+
+	// Lasso selection
+	#lasso!: Lasso;
+	#selectedPoints: Set<number> | null = null;
+
+	// Point rendering
+	#webgl: WebGLRenderer;
+	#canvas: HTMLCanvasElement;
+	#glPositions = new Float32Array(0);
+	#glColors = new Uint8Array(0);
+	#glSizes = new Float32Array(0);
+	#order = new Uint32Array(0);
+	#visibleCategories: Set<number> | null = null;
+
+	// Legend
+	#legend?: Legend;
+	#legendContainer: HTMLElement;
+
+	// Drawing state
+	#playing = false;
+	#pendingFrame = 0;
+
+	// Event emitter
+	#emitter = new Emitter<ScatterEvents>();
+
+	private constructor(container: HTMLElement, opts: ScatterOptions = {}) {
+		this.#opts = {
+			projection: opts.projection ?? "orthographic",
+			basePointSize: opts.basePointSize ?? 6,
+			minDepthScale: opts.minDepthScale ?? 0.1,
+			axisLength: opts.axisLength,
+			cameraZ: opts.cameraZ,
+			viewAngle: opts.viewAngle ?? 45,
+			depthSort: opts.depthSort ?? true,
+			showAxisLabels: opts.showAxisLabels ?? true,
+			showLegend: opts.showLegend,
+			legendWidth: opts.legendWidth ?? 120,
+			width: opts.width,
+			height: opts.height,
+			margin: { ...DEFAULT_MARGIN, ...opts.margin },
+			pixelRatio: opts.pixelRatio,
+			background: opts.background ? parseColor(opts.background) : [0, 0, 0, 0],
+		};
+
+		// Create wrapper: [figure (canvas + overlay)] + [legend]
+		container.style.display = "flex";
+		container.style.flexDirection = "row";
+
+		// Figure wrapper holds canvas and overlay
+		this.#figureWrapper = document.createElement("div");
+		this.#figureWrapper.style.position = "relative";
+		if (this.#opts.width !== undefined) {
+			this.#figureWrapper.style.width = `${this.#opts.width}px`;
+		} else {
+			this.#figureWrapper.style.flex = "1 1 auto";
+			this.#figureWrapper.style.minWidth = "0";
+		}
+		if (this.#opts.height !== undefined) {
+			this.#figureWrapper.style.height = `${this.#opts.height}px`;
+		} else {
+			this.#figureWrapper.style.height = "100%";
+		}
+		container.appendChild(this.#figureWrapper);
+
+		// Legend container is a fixed-width sibling
+		this.#legendContainer = document.createElement("div");
+		this.#legendContainer.style.width = `${this.#opts.legendWidth}px`;
+		this.#legendContainer.style.flexShrink = "0";
+		this.#legendContainer.style.display = "none"; // shown when legend is created
+		container.appendChild(this.#legendContainer);
+
+		// Create canvas inside figure wrapper
+		this.#canvas = document.createElement("canvas");
+		this.#canvas.style.width = "100%";
+		this.#canvas.style.height = "100%";
+		this.#canvas.style.display = "block";
+		this.#figureWrapper.appendChild(this.#canvas);
+
+		this.#figure = select(this.#figureWrapper);
+
+		// Initialize scales
+		this.#sx = scaleLinear();
+		this.#sy = scaleLinear();
+
+		// Initialize WebGL
+		resizeCanvas(this.#canvas, this.#opts.pixelRatio);
+		this.#webgl = new WebGLRenderer(this.#canvas, this.#opts.background);
+
+		// Initialize projection (placeholder ndim=2, will be reset on loadData)
+		this.#projection = new Projection(2);
+
+		// Initialize overlay
+		this.#overlay = new Overlay(
+			this.#figure,
+			this.#projection,
+			this.#sx,
+			this.#sy,
+		);
+
+		// Initialize lasso selection
+		this.#lasso = new Lasso(this.#figure, {
+			onSelect: (indices: number[]) => {
+				this.#selectedPoints = new Set(indices);
+				this.#emitter.emit("lasso", { indices });
+				this.#markDirty();
+			},
+			onClear: () => {
+				this.#selectedPoints = null;
+				this.#emitter.emit("lasso", { indices: [] });
+				this.#markDirty();
+			},
+		});
+
+		// ResizeObserver - observe the figure wrapper for canvas sizing
+		this.#resizeObserver = new ResizeObserver(() => this.resize());
+		this.#resizeObserver.observe(this.#figureWrapper);
+	}
+
+	/**
+	 * Create a new Scatterplot and mount it in the given container element.
+	 */
+	static create(container: HTMLElement, opts?: ScatterOptions): Scatterplot {
+		return new Scatterplot(container, opts);
+	}
+
+	/**
+	 * Load data into the scatterplot from a plain object.
+	 */
+	loadData(data: ScatterData): void {
+		this.#data = this.#parseData(data);
+
+		const { npoint, ndim, dimLabels, legendEntries } = this.#data;
+
+		// Pre-allocate reusable render buffers
+		const nAxisVerts = ndim * 4;
+		const totalVerts = npoint + nAxisVerts;
+		this.#glPositions = new Float32Array(totalVerts * 2);
+		this.#glColors = new Uint8Array(totalVerts * 4);
+		this.#glSizes = new Float32Array(totalVerts);
+		this.#order = new Uint32Array(npoint);
+
+		this.#projection = new Projection(ndim);
+		this.#initOverlay(dimLabels);
+
+		const showLegend = this.#opts.showLegend ?? legendEntries.length > 0;
+		if (showLegend && legendEntries.length > 0) {
+			this.#initLegend(legendEntries);
+		} else {
+			this.#legend?.destroy();
+			this.#legend = undefined;
+			this.#legendContainer.style.display = "none";
+		}
+
+		this.#visibleCategories = null;
+		this.#selectedPoints = null;
+		this.resize();
+
+		if (!this.#playing) {
+			this.#playing = true;
+		}
+		this.#markDirty();
+	}
+
+	/**
+	 * Load data into the scatterplot from an Arrow table.
+	 *
+	 * @param table - An Arrow table (from apache-arrow or compatible library)
+	 * @param options - Options specifying which columns to use
+	 */
+	loadArrow(table: ArrowTable, options: ArrowLoadOptions = {}): void {
+		// Arrow type IDs for numeric types (Int, Float, Decimal)
+		const NUMERIC_TYPE_IDS = new Set([2, 3, 7]); // Int=2, Float=3, Decimal=7
+
+		const allFields = table.schema.fields;
+		const numericFields = allFields.filter((f) =>
+			NUMERIC_TYPE_IDS.has(f.type.typeId),
+		);
+
+		// Determine dimension columns
+		const dimNames = options.dimensions ?? numericFields.map((f) => f.name);
+
+		// Build columns object
+		const columns: Record<string, ArrayLike<number>> = {};
+		for (const name of dimNames) {
+			const col = table.getChild(name);
+			if (!col) {
+				throw new Error(`Column "${name}" not found in Arrow table`);
+			}
+			columns[name] = col.toArray() as ArrayLike<number>;
+		}
+
+		// Extract labels if specified
+		let labels: ArrayLike<string | number> | undefined;
+		if (options.labelColumn) {
+			const col = table.getChild(options.labelColumn);
+			if (!col) {
+				throw new Error(
+					`Label column "${options.labelColumn}" not found in Arrow table`,
+				);
+			}
+			labels = col.toArray() as ArrayLike<string | number>;
+		}
+
+		this.loadData({
+			columns,
+			labels,
+			colors: options.colors,
+		});
+	}
+
+	#parseData(data: ScatterData): ParsedScatterData {
+		const dimLabels = Object.keys(data.columns);
+		const ndim = dimLabels.length;
+		const npoint = data.columns[dimLabels[0]].length;
+
+		// Build row-major matrix: npoint x ndim
+		const matrix: number[][] = [];
+		for (let i = 0; i < npoint; i++) {
+			const row: number[] = [];
+			for (const key of dimLabels) {
+				row.push(data.columns[key][i]);
+			}
+			matrix.push(row);
+		}
+
+		// Build category info
+		let categories: string[] = [];
+		let labelIndices: number[] = [];
+		let hexColors: string[] = [];
+		let legendEntries: [string, string][] = [];
+
+		if (data.labels) {
+			if (data.colors) {
+				categories = Object.keys(data.colors);
+				hexColors = Object.values(data.colors);
+			} else {
+				const unique = new Set<string>();
+				for (let i = 0; i < npoint; i++) {
+					unique.add(String(data.labels[i]));
+				}
+				categories = Array.from(unique).sort();
+				hexColors = categories.map(
+					(_, i) => schemeCategory10[i % schemeCategory10.length],
+				);
+			}
+
+			const catToIdx = new Map(categories.map((c, i) => [c, i]));
+			for (let i = 0; i < npoint; i++) {
+				labelIndices.push(catToIdx.get(String(data.labels[i])) ?? 0);
+			}
+			legendEntries = categories.map((c, i) => [c, hexColors[i]]);
+		} else {
+			hexColors = [schemeCategory10[0]];
+			labelIndices = new Array(npoint).fill(0);
+		}
+
+		const rgbTuples: [number, number, number][] = hexColors.map((c) => {
+			const parsed = rgb(c)!;
+			return [parsed.r, parsed.g, parsed.b];
+		});
+
+		// Compute max Euclidean distance from origin (safe cameraZ default)
+		let maxDataRadius = 0;
+		for (let i = 0; i < npoint; i++) {
+			let sumSq = 0;
+			for (let d = 0; d < ndim; d++) {
+				sumSq += matrix[i][d] ** 2;
+			}
+			maxDataRadius = Math.max(maxDataRadius, Math.sqrt(sumSq));
+		}
+
+		return {
+			matrix,
+			npoint,
+			ndim,
+			dimLabels,
+			labelIndices,
+			hexColors,
+			rgbTuples,
+			legendEntries,
+			maxDataRadius,
+		};
+	}
+
+	#initOverlay(dimLabels: string[]): void {
+		this.#overlay.destroy();
+		this.#overlay = new Overlay(
+			this.#figure,
+			this.#projection,
+			this.#sx,
+			this.#sy,
+		);
+		this.#overlay.init(dimLabels, {
+			onProjectionChanged: () => {
+				this.#emitter.emit("projection", {
+					matrix: this.#projection.getMatrix(),
+				});
+				this.#markDirty();
+			},
+		});
+	}
+
+	#initLegend(entries: [string, string][]): void {
+		this.#legend?.destroy();
+		this.#legendContainer.style.display = "block";
+		this.#legend = new Legend(entries, {
+			container: this.#legendContainer,
+		});
+		this.#legend.on("select", (classes) => {
+			if (!this.#data) return;
+			this.#visibleCategories =
+				classes.size === this.#data.legendEntries.length
+					? null
+					: new Set(classes);
+			const selectedLabels = new Set<string | number>();
+			for (const idx of classes) {
+				selectedLabels.add(this.#data.legendEntries[idx][0]);
+			}
+			this.#emitter.emit("select", { labels: selectedLabels });
+			this.#markDirty();
+		});
+		this.#legend.on("mouseout", (classes) => {
+			this.#visibleCategories = classes.size === 0 ? null : new Set(classes);
+			this.#markDirty();
+		});
+	}
+
+	/** Schedule a single render frame if playing and none is pending. */
+	#markDirty(): void {
+		if (!this.#playing || this.#pendingFrame !== 0) return;
+		this.#pendingFrame = requestAnimationFrame(() => {
+			this.#pendingFrame = 0;
+			if (this.#playing) this.#render();
+		});
+	}
+
+	/** Enable rendering. Flushes any pending state changes. */
+	play(): void {
+		if (this.#playing) return;
+		this.#playing = true;
+		this.#markDirty();
+	}
+
+	/** Suppress rendering. No frames are drawn until play() is called. */
+	pause(): void {
+		this.#playing = false;
+		if (this.#pendingFrame !== 0) {
+			cancelAnimationFrame(this.#pendingFrame);
+			this.#pendingFrame = 0;
+		}
+	}
+
+	/** Force a resize recalculation. */
+	resize(): void {
+		resizeCanvas(this.#canvas, this.#opts.pixelRatio);
+		this.#webgl.resize();
+		this.#overlay.resize();
+		this.#lasso.resize();
+		this.#legend?.resize();
+		this.#emitter.emit("resize", {
+			width: this.#canvas.clientWidth,
+			height: this.#canvas.clientHeight,
+		});
+		this.#markDirty();
+	}
+
+	/** Get a copy of the current projection matrix. */
+	getProjectionMatrix(): number[][] {
+		return this.#projection.getMatrix();
+	}
+
+	/** Set the projection matrix. */
+	setProjectionMatrix(matrix: number[][]): void {
+		this.#projection.setMatrix(matrix);
+		this.#emitter.emit("projection", {
+			matrix: this.#projection.getMatrix(),
+		});
+		this.#markDirty();
+	}
+
+	/** Get a single axis vector. */
+	getAxis(index: number): number[] {
+		return this.#projection.getAxis(index);
+	}
+
+	/** Set a single axis vector and re-orthogonalize. */
+	setAxis(index: number, vector: number[]): void {
+		this.#projection.setAxis(index, vector);
+		this.#emitter.emit("projection", {
+			matrix: this.#projection.getMatrix(),
+		});
+		this.#markDirty();
+	}
+
+	/** Number of data dimensions. */
+	get ndim(): number {
+		return this.#projection.ndim;
+	}
+
+	/** Dimension/column names. */
+	get dimLabels(): readonly string[] {
+		return this.#data?.dimLabels ?? [];
+	}
+
+	/** Position of axis handles in data coordinates. */
+	get axisLength(): number {
+		return this.#opts.axisLength ?? this.#data?.maxDataRadius ?? 1;
+	}
+
+	set axisLength(value: number) {
+		this.#opts.axisLength = value;
+		this.#markDirty();
+	}
+
+	/** Camera position along the depth axis. Points with z > cameraZ are hidden. */
+	get cameraZ(): number {
+		return this.#opts.cameraZ ?? this.#data?.maxDataRadius ?? 5;
+	}
+
+	set cameraZ(value: number) {
+		this.#opts.cameraZ = value;
+		this.#markDirty();
+	}
+
+	/** View angle (field of view) in degrees. Smaller = more zoom. */
+	get viewAngle(): number {
+		return this.#opts.viewAngle;
+	}
+
+	set viewAngle(value: number) {
+		this.#opts.viewAngle = value;
+		this.#markDirty();
+	}
+
+	/** Focal length derived from view angle. Shorter = stronger perspective. */
+	get focalLength(): number {
+		return PerspectiveCamera.fovToFocalLength(this.#opts.viewAngle);
+	}
+
+	set focalLength(value: number) {
+		this.#opts.viewAngle = PerspectiveCamera.focalLengthToFov(value);
+		this.#markDirty();
+	}
+
+	/** Point diameter in CSS pixels. */
+	get basePointSize(): number {
+		return this.#opts.basePointSize;
+	}
+
+	set basePointSize(value: number) {
+		this.#opts.basePointSize = value;
+		this.#markDirty();
+	}
+
+	/** Minimum depth scaling factor for farthest points. */
+	get minDepthScale(): number {
+		return this.#opts.minDepthScale;
+	}
+
+	set minDepthScale(value: number) {
+		this.#opts.minDepthScale = value;
+		this.#markDirty();
+	}
+
+	/** Projection type: "orthographic" or "perspective". */
+	get projection(): "orthographic" | "perspective" {
+		return this.#opts.projection;
+	}
+
+	set projection(value: "orthographic" | "perspective") {
+		this.#opts.projection = value;
+		this.#markDirty();
+	}
+
+	/**
+	 * Programmatically set selected points by original data indices.
+	 * Does not trigger a lasso event.
+	*/
+	select(indices: number[]): void {
+		this.#selectedPoints = indices.length > 0 ? new Set(indices) : null;
+		this.#markDirty();
+	}
+
+	/** Get the set of selected original data indices, or null if no selection is active. */
+	get selection(): ReadonlySet<number> | null {
+		return this.#selectedPoints;
+	}
+
+	/** Programmatically clear the lasso UI and selection */
+	clearLasso(): void {
+		this.#lasso.clear();
+	}
+
+	/** Subscribe to events. Returns an unsubscribe function. */
+	on<K extends keyof ScatterEvents & string>(
+		event: K,
+		fn: (data: ScatterEvents[K]) => void,
+	): () => void {
+		return this.#emitter.on(event, fn);
+	}
+
+	/** Clean up all resources. */
+	destroy(): void {
+		this.pause();
+		this.#resizeObserver.disconnect();
+		this.#overlay.destroy();
+		this.#lasso.destroy();
+		this.#legend?.destroy();
+		this.#webgl.destroy();
+		this.#figureWrapper.remove();
+		this.#legendContainer.remove();
+	}
+
+	#render(): void {
+		if (!this.#data) return;
+
+		const orthographic = this.#opts.projection === "orthographic";
+		const cameraZ = this.#opts.cameraZ ?? this.#data.maxDataRadius;
+		const dpr = this.#opts.pixelRatio ?? window.devicePixelRatio;
+		const baseSize = this.#opts.basePointSize * dpr;
+
+		// Create camera for perspective projection
+		const camera = new PerspectiveCamera(
+			cameraZ,
+			PerspectiveCamera.fovToFocalLength(this.#opts.viewAngle),
+			this.#opts.minDepthScale,
+		);
+
+		const { matrix, npoint, ndim, labelIndices, rgbTuples } = this.#data;
+
+		// Project the data to 3D
+		const projected = this.#projection.projectXYZ(matrix);
+		const zcoords = projected.map((point) => point[2]);
+
+		// Project the axis endpoints
+		const r = this.axisLength;
+		const signs = this.#projection.axisZSigns();
+		const posAxisData = identity(ndim).map((row) => row.map((v) => v * r));
+		const negAxisData = identity(ndim).map((row) => row.map((v) => -v * r));
+		const posAxis3D = this.#projection.projectXYZ(posAxisData);
+		const negAxis3D = this.#projection.projectXYZ(negAxisData);
+		const originProjected = this.#projection.projectXY([
+			new Array(ndim).fill(0),
+		]);
+
+		// Update the scales based on orthographic axis endpoints so they all fit
+		// within the canvas margins. Using orthographic here means that changing
+		// FOV in perspective mode creates a zoom effect rather than being
+		// normalized away.
+		const axisEnds2D = posAxis3D
+			.map((p) => [p[0], p[1]])
+			.concat(negAxis3D.map((p) => [p[0], p[1]]));
+		updateScaleCenter(
+			axisEnds2D,
+			this.#canvas,
+			this.#sx,
+			this.#sy,
+			1.0,
+			this.#opts.margin,
+		);
+
+		const sx = this.#sx;
+		const sy = this.#sy;
+		const pos = this.#glPositions;
+		const col = this.#glColors;
+		const siz = this.#glSizes;
+		const vis = this.#visibleCategories;
+
+		// Make points behind the camera vanish
+		const alphas = zcoords.map((z) => (z > cameraZ ? 0 : 255));
+
+		// Sort points farthest to closest
+		const order = this.#order;
+		for (let i = 0; i < npoint; i++) order[i] = i;
+		if (this.#opts.depthSort) {
+			order.sort((a, b) => zcoords[a] - zcoords[b]);
+		}
+
+		// Write data points into the flat buffers (in sorted order)
+		for (let si = 0; si < npoint; si++) {
+			const i = order[si];
+			const [x, y, z] = projected[i];
+
+			// position and size
+			if (orthographic) {
+				pos[si * 2] = sx(x);
+				pos[si * 2 + 1] = sy(y);
+				siz[si] = baseSize;
+			} else {
+				const [px, py] = camera.project(x, y, z);
+				pos[si * 2] = sx(px);
+				pos[si * 2 + 1] = sy(py);
+				siz[si] = baseSize * camera.depthScale(z);
+			}
+
+			// color
+			const catIdx = labelIndices[i];
+			const c4 = si * 4;
+			col[c4] = rgbTuples[catIdx][0];
+			col[c4 + 1] = rgbTuples[catIdx][1];
+			col[c4 + 2] = rgbTuples[catIdx][2];
+
+			// opacity
+			// Use the stored alpha value if there's no visibility filter or
+			// if the point is not masked under the visibility filter.
+			let alpha = vis === null || vis.has(catIdx) ? alphas[i] : 0;
+
+			// Lasso selection dimming: unselected points get 10% opacity.
+			const sel = this.#selectedPoints;
+			if (sel !== null && alpha > 0) {
+				alpha = sel.has(i) ? alpha : Math.round(alpha * 0.1);
+			}
+
+			col[c4 + 3] = alpha;
+		}
+
+		// Append the vertices for the axis line segments to the flat buffers
+		const nAxisVerts = ndim * 4;
+		let vi = npoint;
+		const ox = sx(originProjected[0][0]);
+		const oy = sy(originProjected[0][1]);
+
+		// "Towards" segments (axis end facing the viewer)
+		for (let i = 0; i < ndim; i++) {
+			const toward = signs[i] >= 0 ? posAxis3D[i] : negAxis3D[i];
+			// origin vertex
+			pos[vi * 2] = ox;
+			pos[vi * 2 + 1] = oy;
+			col[vi * 4] = 0;
+			col[vi * 4 + 1] = 0;
+			col[vi * 4 + 2] = 0;
+			col[vi * 4 + 3] = 255;
+			vi++;
+			// endpoint vertex
+			pos[vi * 2] = sx(toward[0]);
+			pos[vi * 2 + 1] = sy(toward[1]);
+			col[vi * 4] = 0;
+			col[vi * 4 + 1] = 0;
+			col[vi * 4 + 2] = 0;
+			col[vi * 4 + 3] = 255;
+			vi++;
+		}
+
+		// "Away" segments (axis end facing away from the viewer)
+		for (let i = 0; i < ndim; i++) {
+			const away = signs[i] >= 0 ? negAxis3D[i] : posAxis3D[i];
+			// origin vertex
+			pos[vi * 2] = ox;
+			pos[vi * 2 + 1] = oy;
+			col[vi * 4] = 0;
+			col[vi * 4 + 1] = 0;
+			col[vi * 4 + 2] = 0;
+			col[vi * 4 + 3] = 60;
+			vi++;
+			// endpoint vertex
+			pos[vi * 2] = sx(away[0]);
+			pos[vi * 2 + 1] = sy(away[1]);
+			col[vi * 4] = 0;
+			col[vi * 4 + 1] = 0;
+			col[vi * 4 + 2] = 0;
+			col[vi * 4 + 3] = 60;
+			vi++;
+		}
+
+		// Draw points and axis lines
+		this.#webgl.render(pos, col, siz, npoint, nAxisVerts);
+
+		// Redraw the SVG overlay
+		this.#overlay.redraw(this.axisLength);
+
+		// Update lasso with current render state for PIP hit testing.
+		this.#lasso.setRenderState(this.#glPositions, npoint, this.#order);
+	}
+}
+
+</document_content>
+</document>
+<document index="29">
+<source>src/WebGLRenderer.ts</source>
+<document_content>
+import fragmentSource from "./shaders/fragment.glsl.js";
+import vertexSource from "./shaders/vertex.glsl.js";
+
+function compileShader(
+	gl: WebGLRenderingContext,
+	source: string,
+	type: number,
+): WebGLShader {
+	const shader = gl.createShader(type)!;
+	gl.shaderSource(shader, source);
+	gl.compileShader(shader);
+	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+		const info = gl.getShaderInfoLog(shader);
+		gl.deleteShader(shader);
+		throw new Error(`Shader compilation failed: ${info}`);
+	}
+	return shader;
+}
+
+function createProgram(
+	gl: WebGLRenderingContext,
+	vs: string,
+	fs: string,
+): WebGLProgram {
+	const vertexShader = compileShader(gl, vs, gl.VERTEX_SHADER);
+	const fragmentShader = compileShader(gl, fs, gl.FRAGMENT_SHADER);
+	const program = gl.createProgram()!;
+	gl.attachShader(program, vertexShader);
+	gl.attachShader(program, fragmentShader);
+	gl.linkProgram(program);
+	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+		const info = gl.getProgramInfoLog(program);
+		gl.deleteProgram(program);
+		throw new Error(`Program linking failed: ${info}`);
+	}
+	return program;
+}
+
+export class WebGLRenderer {
+	gl: WebGLRenderingContext;
+	#program: WebGLProgram;
+
+	#positionBuffer: WebGLBuffer;
+	#colorBuffer: WebGLBuffer;
+	#sizeBuffer: WebGLBuffer;
+	#positionLoc: number;
+	#colorLoc: number;
+	#sizeLoc: number;
+	#isDrawingAxisLoc: WebGLUniformLocation;
+	#canvasWidthLoc: WebGLUniformLocation;
+	#canvasHeightLoc: WebGLUniformLocation;
+
+	#clearColor: [number, number, number, number] = [0, 0, 0, 0];
+
+	constructor(
+		canvas: HTMLCanvasElement,
+		clearColor?: [number, number, number, number],
+	) {
+		const gl = canvas.getContext("webgl", { premultipliedAlpha: false });
+		if (!gl) throw new Error("WebGL not supported");
+		this.gl = gl;
+
+		if (clearColor) this.#clearColor = clearColor;
+
+		this.#program = createProgram(gl, vertexSource, fragmentSource);
+		gl.useProgram(this.#program);
+
+		// Blending
+		gl.enable(gl.BLEND);
+		gl.disable(gl.DEPTH_TEST);
+		gl.blendFuncSeparate(
+			gl.SRC_ALPHA,
+			gl.ONE_MINUS_SRC_ALPHA,
+			gl.ONE,
+			gl.ONE_MINUS_SRC_ALPHA,
+		);
+
+		// Buffers
+		this.#positionBuffer = gl.createBuffer()!;
+		this.#colorBuffer = gl.createBuffer()!;
+		this.#sizeBuffer = gl.createBuffer()!;
+
+		// Attribute locations
+		this.#positionLoc = gl.getAttribLocation(this.#program, "a_position");
+		this.#colorLoc = gl.getAttribLocation(this.#program, "a_color");
+		this.#sizeLoc = gl.getAttribLocation(this.#program, "a_size");
+
+		// Uniform locations
+		this.#isDrawingAxisLoc = gl.getUniformLocation(
+			this.#program,
+			"isDrawingAxis",
+		)!;
+		this.#canvasWidthLoc = gl.getUniformLocation(this.#program, "canvasWidth")!;
+		this.#canvasHeightLoc = gl.getUniformLocation(
+			this.#program,
+			"canvasHeight",
+		)!;
+
+		this.resize();
+	}
+
+	resize(): void {
+		const canvas = this.gl.canvas as HTMLCanvasElement;
+		this.gl.viewport(0, 0, canvas.width, canvas.height);
+		this.gl.uniform1f(this.#canvasWidthLoc, canvas.clientWidth);
+		this.gl.uniform1f(this.#canvasHeightLoc, canvas.clientHeight);
+	}
+
+	/**
+	 * Render data points and axis lines from pre-built flat buffers.
+	 *
+	 * @param positions - interleaved [x,y] for all vertices (data points then axis verts)
+	 * @param colors - interleaved [r,g,b,a] for all vertices (0-255 each)
+	 * @param sizes - per-vertex point size in physical pixels (data points + axis verts)
+	 * @param npoint - number of data points (drawn as POINTS)
+	 * @param naxisVerts - number of axis line vertices (drawn as LINES)
+	 */
+	render(
+		positions: Float32Array,
+		colors: Uint8Array,
+		sizes: Float32Array,
+		npoint: number,
+		naxisVerts: number,
+	): void {
+		const gl = this.gl;
+
+		gl.clearColor(...this.#clearColor);
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+		// Position buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#positionBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.#positionLoc, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(this.#positionLoc);
+
+		// Color buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#colorBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, colors, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.#colorLoc, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+		gl.enableVertexAttribArray(this.#colorLoc);
+
+		// Size buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#sizeBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.#sizeLoc, 1, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(this.#sizeLoc);
+
+		// Draw data points
+		gl.uniform1i(this.#isDrawingAxisLoc, 0);
+		gl.drawArrays(gl.POINTS, 0, npoint);
+
+		// Draw axis lines
+		gl.uniform1i(this.#isDrawingAxisLoc, 1);
+		gl.drawArrays(gl.LINES, npoint, naxisVerts);
+	}
+
+	destroy(): void {
+		const gl = this.gl;
+		gl.deleteBuffer(this.#positionBuffer);
+		gl.deleteBuffer(this.#colorBuffer);
+		gl.deleteBuffer(this.#sizeBuffer);
+		gl.deleteProgram(this.#program);
+	}
+}
+
+</document_content>
+</document>
+<document index="30">
+<source>src/index.ts</source>
+<document_content>
+export { PerspectiveCamera, Projection } from "./Projection.js";
+export type {
+	ScatterData,
+	ScatterEvents,
+	ScatterOptions,
+} from "./Scatterplot.js";
+export { Scatterplot } from "./Scatterplot.js";
+export type {
+	ArrowLoadOptions,
+	ArrowTable,
+	ArrowVector,
+} from "./types.js";
+
+</document_content>
+</document>
+<document index="31">
+<source>src/linalg.ts</source>
+<document_content>
+/** Create an n x n identity matrix. */
+export function identity(n: number): number[][] {
+	return Array.from({ length: n }, (_, i) =>
+		Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)),
+	);
+}
+
+/** Create a zero vector of length n. */
+export function zeros(n: number): number[] {
+	return new Array(n).fill(0);
+}
+
+/** Deep-clone a 2D array. */
+export function clone(m: number[][]): number[][] {
+	return m.map((row) => row.slice());
+}
+
+/** Transpose an m x n matrix. */
+export function transpose(m: number[][]): number[][] {
+	const rows = m.length;
+	const cols = m[0].length;
+	const result: number[][] = Array.from(
+		{ length: cols },
+		() => new Array(rows),
+	);
+	for (let i = 0; i < rows; i++) {
+		for (let j = 0; j < cols; j++) {
+			result[j][i] = m[i][j];
+		}
+	}
+	return result;
+}
+
+/** Multiply two matrices (A: m x p, B: p x n) → m x n. */
+export function matmul(a: number[][], b: number[][]): number[][] {
+	const m = a.length;
+	const p = a[0].length;
+	const n = b[0].length;
+	const result: number[][] = Array.from({ length: m }, () =>
+		new Array(n).fill(0),
+	);
+	for (let i = 0; i < m; i++) {
+		for (let k = 0; k < p; k++) {
+			const aik = a[i][k];
+			for (let j = 0; j < n; j++) {
+				result[i][j] += aik * b[k][j];
+			}
+		}
+	}
+	return result;
+}
+
+/** Dot product of two vectors. */
+export function dot(u: number[], v: number[]): number {
+	let sum = 0;
+	for (let i = 0; i < u.length; i++) sum += u[i] * v[i];
+	return sum;
+}
+
+/** Euclidean norm of a vector. */
+export function norm2(v: number[]): number {
+	return Math.sqrt(dot(v, v));
+}
+
+/** Element-wise addition of two vectors. */
+export function add(a: number[], b: number[]): number[] {
+	return a.map((v, i) => v + b[i]);
+}
+
+/** Element-wise subtraction: a - b. */
+export function sub(a: number[], b: number[]): number[] {
+	return a.map((v, i) => v - b[i]);
+}
+
+/** Scalar multiply: s * v. */
+export function scale(s: number, v: number[]): number[] {
+	return v.map((x) => s * x);
+}
+
+/** Element-wise negation. */
+export function neg(v: number[]): number[] {
+	return v.map((x) => -x);
+}
+
+/** Column-wise min across rows of a 2D array. */
+export function columnMin(m: number[][]): number[] {
+	const ncols = m[0].length;
+	const result = new Array(ncols).fill(Infinity);
+	for (let i = 0; i < m.length; i++) {
+		for (let j = 0; j < ncols; j++) {
+			if (m[i][j] < result[j]) result[j] = m[i][j];
+		}
+	}
+	return result;
+}
+
+/** Column-wise max across rows of a 2D array. */
+export function columnMax(m: number[][]): number[] {
+	const ncols = m[0].length;
+	const result = new Array(ncols).fill(-Infinity);
+	for (let i = 0; i < m.length; i++) {
+		for (let j = 0; j < ncols; j++) {
+			if (m[i][j] > result[j]) result[j] = m[i][j];
+		}
+	}
+	return result;
+}
+
+/** Column-wise max of absolute values across rows of a 2D array. */
+export function columnMaxAbs(m: number[][]): number[] {
+	const ncols = m[0].length;
+	const result = new Array(ncols).fill(0);
+	for (let i = 0; i < m.length; i++) {
+		for (let j = 0; j < ncols; j++) {
+			const abs = Math.abs(m[i][j]);
+			if (abs > result[j]) result[j] = abs;
+		}
+	}
+	return result;
+}
+
+/**
+ * Gram-Schmidt orthogonalization with priority row.
+ *
+ * The priority row is kept intact (only normalized), and all other rows
+ * are orthogonalized against it and each other.
+ */
+export function orthogonalize(
+	matrix: number[][],
+	priorityRowIndex = 0,
+): number[][] {
+	const n = matrix.length;
+
+	// Swap priority row to position 0
+	[matrix[0], matrix[priorityRowIndex]] = [matrix[priorityRowIndex], matrix[0]];
+
+	// Normalize first row
+	matrix[0] = normalizeVec(matrix[0]);
+
+	// Orthogonalize remaining rows
+	for (let i = 1; i < n; i++) {
+		for (let j = 0; j < i; j++) {
+			// Subtract projection of matrix[i] onto matrix[j]
+			const d = dot(matrix[j], matrix[i]);
+			const dd = dot(matrix[j], matrix[j]);
+			if (dd > 0) {
+				matrix[i] = sub(matrix[i], scale(d / dd, matrix[j]));
+			}
+		}
+		matrix[i] = normalizeVec(matrix[i]);
+	}
+
+	// Swap back
+	[matrix[0], matrix[priorityRowIndex]] = [matrix[priorityRowIndex], matrix[0]];
+
+	return matrix;
+}
+
+function normalizeVec(v: number[]): number[] {
+	const n = norm2(v);
+	if (n <= 0) return v;
+	return v.map((x) => x / n);
+}
+
+/**
+ * Build an ndim x ndim orthogonal matrix whose first 2 columns place
+ * the n axes evenly around a circle in the 2D projection.
+ *
+ * Column 0 = √(2/n) · [cos(2πi/n)]
+ * Column 1 = √(2/n) · [sin(2πi/n)]
+ * Remaining columns completed via Gram-Schmidt.
+ */
+export function circularBasis(ndim: number): number[][] {
+	// For n ≤ 2, circular layout is degenerate; use identity
+	if (ndim <= 2) return identity(ndim);
+
+	const a = Math.sqrt(2 / ndim);
+
+	// Build columns
+	const cols: number[][] = [];
+
+	// Column 0: cos
+	cols.push(
+		Array.from(
+			{ length: ndim },
+			(_, i) => a * Math.cos((2 * Math.PI * i) / ndim),
+		),
+	);
+
+	// Column 1: sin
+	cols.push(
+		Array.from(
+			{ length: ndim },
+			(_, i) => a * Math.sin((2 * Math.PI * i) / ndim),
+		),
+	);
+
+	// Complete the basis: try each standard basis vector, keep if independent
+	for (let j = 0; j < ndim && cols.length < ndim; j++) {
+		let v: number[] = Array.from({ length: ndim }, (_, k) => (k === j ? 1 : 0));
+
+		// Subtract projections onto existing columns
+		for (const col of cols) {
+			const d = dot(col, v);
+			v = sub(v, scale(d, col));
+		}
+
+		const n = norm2(v);
+		if (n > 1e-10) {
+			cols.push(v.map((x) => x / n));
+		}
+	}
+
+	// Convert column-major to row-major: matrix[i][j] = cols[j][i]
+	return Array.from({ length: ndim }, (_, i) =>
+		Array.from({ length: ndim }, (_, j) => cols[j][i]),
+	);
+}
+
+/**
+ * Determinant of a square matrix via Gaussian elimination with partial pivoting.
+ * For orthogonal matrices the result is exactly ±1.
+ */
+export function determinant(m: number[][]): number {
+	const n = m.length;
+	const a = m.map((row) => row.slice());
+	let sign = 1;
+
+	for (let col = 0; col < n; col++) {
+		// Partial pivot
+		let maxRow = col;
+		let maxVal = Math.abs(a[col][col]);
+		for (let row = col + 1; row < n; row++) {
+			const v = Math.abs(a[row][col]);
+			if (v > maxVal) {
+				maxVal = v;
+				maxRow = row;
+			}
+		}
+		if (maxRow !== col) {
+			[a[col], a[maxRow]] = [a[maxRow], a[col]];
+			sign *= -1;
+		}
+		if (Math.abs(a[col][col]) < 1e-12) return 0;
+
+		for (let row = col + 1; row < n; row++) {
+			const factor = a[row][col] / a[col][col];
+			for (let j = col + 1; j < n; j++) {
+				a[row][j] -= factor * a[col][j];
+			}
+		}
+	}
+
+	let det = sign;
+	for (let i = 0; i < n; i++) det *= a[i][i];
+	return det;
+}
+
+/** Flatten a 2D array into a Float32Array (row-major). */
+export function flatten(m: number[][]): Float32Array {
+	const rows = m.length;
+	const cols = m[0].length;
+	const result = new Float32Array(rows * cols);
+	let idx = 0;
+	for (let i = 0; i < rows; i++) {
+		for (let j = 0; j < cols; j++) {
+			result[idx++] = m[i][j];
+		}
+	}
+	return result;
+}
+
+</document_content>
+</document>
+<document index="32">
+<source>src/shaders/fragment.glsl.ts</source>
+<document_content>
+export default `
+precision mediump float;
+
+uniform bool isDrawingAxis;
+
+varying vec4 v_color;
+
+void main() {
+  gl_FragColor = v_color;
+  if (!isDrawingAxis) {
+    float dist = distance(vec2(0.5, 0.5), gl_PointCoord);
+    // Anti-aliased circular point
+    float eps = 0.1;
+    float a = -1.0 / (2.0 * eps);
+    float b = 0.5 + 1.0 / (4.0 * eps);
+    float f = a * dist + b;
+    float g = smoothstep(0.0, 1.0, f);
+    gl_FragColor.a = v_color.a * g;
+    // Darker outline
+    vec3 outline_color = mix(vec3(0.0), gl_FragColor.rgb, 0.9);
+    gl_FragColor.rgb = mix(
+      outline_color,
+      gl_FragColor.rgb,
+      smoothstep(0.0, 1.0, (0.5 - dist) * 5.0)
+    );
+  }
+}
+`;
+
+</document_content>
+</document>
+<document index="33">
+<source>src/shaders/vertex.glsl.ts</source>
+<document_content>
+export default `
+attribute vec4 a_position;
+attribute vec4 a_color;
+attribute float a_size;
+
+uniform float canvasWidth;
+uniform float canvasHeight;
+
+varying vec4 v_color;
+
+void main() {
+  gl_PointSize = a_size;
+  gl_Position.x = (a_position.x / canvasWidth - 0.5) * 2.0;
+  gl_Position.y = -(a_position.y / canvasHeight - 0.5) * 2.0;
+  gl_Position.z = 0.0;
+  gl_Position.w = 1.0;
+  v_color = a_color;
+}
+`;
+
+</document_content>
+</document>
+<document index="34">
+<source>src/types.ts</source>
+<document_content>
+import type { ScaleLinear } from "d3-scale";
+
+/**
+ * Options for loading Arrow tables.
+ */
+export interface ArrowLoadOptions {
+	/** Column names to use as numeric dimensions. If omitted, uses all numeric columns. */
+	dimensions?: string[];
+	/** Column name containing categorical labels for coloring/legend. */
+	labelColumn?: string;
+	/** Optional mapping from label values to hex color strings. */
+	colors?: Record<string, string>;
+}
+
+/**
+ * Minimal interface for Arrow-like tables (duck-typed to work with apache-arrow).
+ */
+export interface ArrowTable {
+	readonly numRows: number;
+	readonly schema: {
+		fields: Array<{ name: string; type: { typeId: number } }>;
+	};
+	getChild(name: string): ArrowVector | null;
+}
+
+/**
+ * Minimal interface for Arrow-like vectors.
+ */
+export interface ArrowVector {
+	readonly length: number;
+	get(index: number): unknown;
+	toArray(): ArrayLike<unknown>;
+}
+
+export interface Margin {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+}
+
+export type Scale = ScaleLinear<number, number, never>;
+
+</document_content>
+</document>
+<document index="35">
+<source>test/lasso.test.ts</source>
+<document_content>
+import { describe, expect, it } from "vitest";
+import { pointsInPolygon } from "../src/Lasso.js";
+
+describe("pointsInPolygon", () => {
+	// Square polygon from (10,10) to (100,100).
+	const square: [number, number][] = [
+		[10, 10],
+		[100, 10],
+		[100, 100],
+		[10, 100],
+	];
+
+	it("finds points inside a square polygon", () => {
+		// Point 0: (50,50) inside, Point 1: (150,150) outside, Point 2: (80,80) inside
+		const positions = new Float32Array([50, 50, 150, 150, 80, 80]);
+		const order = new Uint32Array([0, 1, 2]);
+		const result = pointsInPolygon(positions, 3, square, order);
+		expect(result.sort()).toEqual([0, 2]);
+	});
+
+	it("returns empty array for fewer than 3 polygon vertices", () => {
+		const positions = new Float32Array([50, 50]);
+		const order = new Uint32Array([0]);
+		expect(pointsInPolygon(positions, 1, [], order)).toEqual([]);
+		expect(
+			pointsInPolygon(
+				positions,
+				1,
+				[
+					[0, 0],
+					[100, 100],
+				],
+				order,
+			),
+		).toEqual([]);
+	});
+
+	it("rejects points outside the AABB", () => {
+		// All points far outside the square's bounding box.
+		const positions = new Float32Array([200, 200, -50, -50, 300, 0]);
+		const order = new Uint32Array([0, 1, 2]);
+		expect(pointsInPolygon(positions, 3, square, order)).toEqual([]);
+	});
+
+	it("maps sorted indices back to original data indices via order", () => {
+		// Positions are in sorted order [sortIdx 0 → orig 5, sortIdx 1 → orig 3]
+		// Point at sortIdx 0 is (50,50) → inside the square, original index 5.
+		// Point at sortIdx 1 is (150,150) → outside, original index 3.
+		const positions = new Float32Array([50, 50, 150, 150]);
+		const order = new Uint32Array([5, 3]);
+		const result = pointsInPolygon(positions, 2, square, order);
+		expect(result).toEqual([5]);
+	});
+
+	it("returns empty when no points are inside", () => {
+		const positions = new Float32Array([0, 0, 200, 200, 5, 5]);
+		const order = new Uint32Array([0, 1, 2]);
+		expect(pointsInPolygon(positions, 3, square, order)).toEqual([]);
+	});
+
+	it("handles a concave polygon", () => {
+		// L-shaped polygon (concave).
+		const lShape: [number, number][] = [
+			[0, 0],
+			[100, 0],
+			[100, 50],
+			[50, 50],
+			[50, 100],
+			[0, 100],
+		];
+		// (25, 25) inside the L, (75, 75) outside (in the concave notch)
+		const positions = new Float32Array([25, 25, 75, 75]);
+		const order = new Uint32Array([0, 1]);
+		const result = pointsInPolygon(positions, 2, lShape, order);
+		expect(result).toEqual([0]);
+	});
+
+	it("handles a triangle", () => {
+		const triangle: [number, number][] = [
+			[0, 0],
+			[100, 0],
+			[50, 100],
+		];
+		// (50, 30) inside, (90, 90) outside
+		const positions = new Float32Array([50, 30, 90, 90]);
+		const order = new Uint32Array([0, 1]);
+		const result = pointsInPolygon(positions, 2, triangle, order);
+		expect(result).toEqual([0]);
+	});
+
+	it("only tests up to npoint, ignoring trailing buffer data", () => {
+		// Buffer has 3 points worth of data, but npoint=2.
+		// Point at sortIdx 2 is inside but should be ignored.
+		const positions = new Float32Array([50, 50, 150, 150, 80, 80]);
+		const order = new Uint32Array([0, 1, 2]);
+		const result = pointsInPolygon(positions, 2, square, order);
+		expect(result).toEqual([0]);
+	});
+});
+
+</document_content>
+</document>
+<document index="36">
+<source>test/linalg.test.ts</source>
+<document_content>
+import { describe, expect, it } from "vitest";
+import {
+	add,
+	circularBasis,
+	clone,
+	columnMax,
+	columnMaxAbs,
+	columnMin,
+	determinant,
+	dot,
+	flatten,
+	identity,
+	matmul,
+	neg,
+	norm2,
+	orthogonalize,
+	scale,
+	sub,
+	transpose,
+	zeros,
+} from "../src/linalg.js";
+
+describe("identity", () => {
+	it("creates a 3x3 identity", () => {
+		expect(identity(3)).toEqual([
+			[1, 0, 0],
+			[0, 1, 0],
+			[0, 0, 1],
+		]);
+	});
+
+	it("creates a 1x1 identity", () => {
+		expect(identity(1)).toEqual([[1]]);
+	});
+});
+
+describe("zeros", () => {
+	it("creates a zero vector", () => {
+		expect(zeros(4)).toEqual([0, 0, 0, 0]);
+	});
+});
+
+describe("clone", () => {
+	it("deep copies a 2D array", () => {
+		const m = [
+			[1, 2],
+			[3, 4],
+		];
+		const c = clone(m);
+		expect(c).toEqual(m);
+		c[0][0] = 99;
+		expect(m[0][0]).toBe(1);
+	});
+});
+
+describe("transpose", () => {
+	it("transposes a 2x3 matrix", () => {
+		expect(
+			transpose([
+				[1, 2, 3],
+				[4, 5, 6],
+			]),
+		).toEqual([
+			[1, 4],
+			[2, 5],
+			[3, 6],
+		]);
+	});
+
+	it("transposes a square matrix", () => {
+		expect(
+			transpose([
+				[1, 2],
+				[3, 4],
+			]),
+		).toEqual([
+			[1, 3],
+			[2, 4],
+		]);
+	});
+});
+
+describe("matmul", () => {
+	it("multiplies 2x2 matrices", () => {
+		const a = [
+			[1, 2],
+			[3, 4],
+		];
+		const b = [
+			[5, 6],
+			[7, 8],
+		];
+		expect(matmul(a, b)).toEqual([
+			[19, 22],
+			[43, 50],
+		]);
+	});
+
+	it("multiplies non-square matrices", () => {
+		const a = [[1, 2, 3]]; // 1x3
+		const b = [[4], [5], [6]]; // 3x1
+		expect(matmul(a, b)).toEqual([[32]]);
+	});
+
+	it("identity * A = A", () => {
+		const a = [
+			[1, 2],
+			[3, 4],
+		];
+		expect(matmul(identity(2), a)).toEqual(a);
+	});
+});
+
+describe("dot", () => {
+	it("computes dot product", () => {
+		expect(dot([1, 2, 3], [4, 5, 6])).toBe(32);
+	});
+
+	it("dot of orthogonal vectors is 0", () => {
+		expect(dot([1, 0], [0, 1])).toBe(0);
+	});
+});
+
+describe("norm2", () => {
+	it("computes euclidean norm", () => {
+		expect(norm2([3, 4])).toBe(5);
+	});
+
+	it("unit vector has norm 1", () => {
+		expect(norm2([1, 0, 0])).toBe(1);
+	});
+});
+
+describe("add / sub / scale / neg", () => {
+	it("add", () => {
+		expect(add([1, 2], [3, 4])).toEqual([4, 6]);
+	});
+
+	it("sub", () => {
+		expect(sub([5, 3], [2, 1])).toEqual([3, 2]);
+	});
+
+	it("scale", () => {
+		expect(scale(2, [3, 4])).toEqual([6, 8]);
+	});
+
+	it("neg", () => {
+		expect(neg([1, -2, 3])).toEqual([-1, 2, -3]);
+	});
+});
+
+describe("column operations", () => {
+	const m = [
+		[1, -5, 3],
+		[4, 2, -1],
+		[-2, 7, 0],
+	];
+
+	it("columnMin", () => {
+		expect(columnMin(m)).toEqual([-2, -5, -1]);
+	});
+
+	it("columnMax", () => {
+		expect(columnMax(m)).toEqual([4, 7, 3]);
+	});
+
+	it("columnMaxAbs", () => {
+		expect(columnMaxAbs(m)).toEqual([4, 7, 3]);
+	});
+});
+
+describe("orthogonalize", () => {
+	it("orthogonalizes rows of a 3x3 matrix", () => {
+		const m = [
+			[1, 1, 0],
+			[1, 0, 0],
+			[0, 1, 1],
+		];
+		const result = orthogonalize(m);
+
+		// Check rows are orthogonal
+		for (let i = 0; i < 3; i++) {
+			for (let j = i + 1; j < 3; j++) {
+				expect(Math.abs(dot(result[i], result[j]))).toBeLessThan(1e-10);
+			}
+		}
+
+		// Check rows are unit length
+		for (let i = 0; i < 3; i++) {
+			expect(norm2(result[i])).toBeCloseTo(1, 10);
+		}
+	});
+
+	it("preserves priority row direction", () => {
+		const m = [
+			[1, 0, 0],
+			[1, 1, 0],
+			[0, 0, 1],
+		];
+		const result = orthogonalize(m, 1);
+
+		// Priority row (index 1) should point in original direction [1,1,0] (normalized)
+		const expected = [1 / Math.sqrt(2), 1 / Math.sqrt(2), 0];
+		for (let j = 0; j < 3; j++) {
+			expect(result[1][j]).toBeCloseTo(expected[j], 10);
+		}
+	});
+
+	it("identity stays identity", () => {
+		const result = orthogonalize(identity(3));
+		for (let i = 0; i < 3; i++) {
+			for (let j = 0; j < 3; j++) {
+				expect(result[i][j]).toBeCloseTo(i === j ? 1 : 0, 10);
+			}
+		}
+	});
+});
+
+describe("flatten", () => {
+	it("flattens a 2D array to Float32Array", () => {
+		const result = flatten([
+			[1, 2],
+			[3, 4],
+		]);
+		expect(result).toBeInstanceOf(Float32Array);
+		expect(Array.from(result)).toEqual([1, 2, 3, 4]);
+	});
+});
+
+describe("circularBasis", () => {
+	it("produces an orthogonal matrix", () => {
+		const m = circularBasis(5);
+		// Rows are orthonormal
+		for (let i = 0; i < 5; i++) {
+			expect(norm2(m[i])).toBeCloseTo(1, 10);
+			for (let j = i + 1; j < 5; j++) {
+				expect(Math.abs(dot(m[i], m[j]))).toBeLessThan(1e-10);
+			}
+		}
+	});
+
+	it("places axes evenly around a circle in the first 2 columns", () => {
+		const n = 5;
+		const m = circularBasis(n);
+		const a = Math.sqrt(2 / n);
+
+		for (let i = 0; i < n; i++) {
+			const angle = (2 * Math.PI * i) / n;
+			expect(m[i][0]).toBeCloseTo(a * Math.cos(angle), 10);
+			expect(m[i][1]).toBeCloseTo(a * Math.sin(angle), 10);
+		}
+	});
+
+	it("works for n=2 (degenerates to rotation)", () => {
+		const m = circularBasis(2);
+		expect(norm2(m[0])).toBeCloseTo(1, 10);
+		expect(norm2(m[1])).toBeCloseTo(1, 10);
+		expect(Math.abs(dot(m[0], m[1]))).toBeLessThan(1e-10);
+	});
+
+	it("works for large n", () => {
+		const n = 20;
+		const m = circularBasis(n);
+		for (let i = 0; i < n; i++) {
+			expect(norm2(m[i])).toBeCloseTo(1, 8);
+		}
+	});
+});
+
+describe("determinant", () => {
+	it("identity has det = 1", () => {
+		expect(determinant(identity(3))).toBeCloseTo(1);
+		expect(determinant(identity(5))).toBeCloseTo(1);
+	});
+
+	it("single row swap flips sign", () => {
+		// Swap rows 0 and 1 of identity → det = -1
+		expect(
+			determinant([
+				[0, 1, 0],
+				[1, 0, 0],
+				[0, 0, 1],
+			]),
+		).toBeCloseTo(-1);
+	});
+
+	it("reflection has det = -1", () => {
+		// Negate one row of identity
+		expect(
+			determinant([
+				[-1, 0, 0],
+				[0, 1, 0],
+				[0, 0, 1],
+			]),
+		).toBeCloseTo(-1);
+	});
+
+	it("orthogonal matrices have det = ±1", () => {
+		const m = circularBasis(5);
+		const d = determinant(m);
+		expect(Math.abs(Math.abs(d) - 1)).toBeLessThan(1e-10);
+	});
+
+	it("2x2 case", () => {
+		expect(
+			determinant([
+				[3, 7],
+				[1, -4],
+			]),
+		).toBeCloseTo(-19);
+	});
+});
+
+</document_content>
+</document>
+<document index="37">
+<source>test/projection.test.ts</source>
+<document_content>
+import { describe, expect, it } from "vitest";
+import { dot, identity } from "../src/linalg.js";
+import { Projection } from "../src/Projection.js";
+
+describe("Projection", () => {
+	describe("projectXY", () => {
+		it("projects 3D points using first 2 columns", () => {
+			const p = new Projection(3, identity(3));
+			// With identity matrix, column 0 = [1,0,0], column 1 = [0,1,0]
+			// so project just extracts (x, y)
+			const data = [
+				[1, 2, 3],
+				[4, 5, 6],
+			];
+			expect(p.projectXY(data)).toEqual([
+				[1, 2],
+				[4, 5],
+			]);
+		});
+	});
+
+	describe("projectZ", () => {
+		it("returns zeros for ndim < 3", () => {
+			const p = new Projection(2, identity(2));
+			const data = [
+				[1, 2],
+				[3, 4],
+			];
+			expect(p.projectZ(data)).toEqual([0, 0]);
+		});
+
+		it("extracts 3rd coordinate with identity matrix (det=+1)", () => {
+			const p = new Projection(3, identity(3));
+			// identity: det=+1, column 2 = [0,0,1], sign=+1
+			const data = [
+				[1, 2, 10],
+				[3, 4, -5],
+				[5, 6, 0],
+			];
+			expect(p.projectZ(data)).toEqual([10, -5, 0]);
+		});
+
+		it("z-sort separates overlapping points correctly", () => {
+			const p = new Projection(3, identity(3));
+			const data = [
+				[1, 1, 5], // point 0: z=5 (front)
+				[1, 1, -3], // point 1: z=-3 (back)
+				[1, 1, 0], // point 2: z=0 (middle)
+			];
+
+			const z = p.projectZ(data);
+			const order = [0, 1, 2];
+			order.sort((a, b) => z[a] - z[b]);
+
+			// Back-to-front: point 1, then 2, then 0 on top
+			expect(order).toEqual([1, 2, 0]);
+		});
+
+		it("reflected matrix: negated row flips column 2 sign", () => {
+			// Negate row 2 of identity → column 2 = [0, 0, -1]
+			const p = new Projection(3, [
+				[1, 0, 0],
+				[0, 1, 0],
+				[0, 0, -1],
+			]);
+
+			const data = [
+				[0, 0, 5], // dot with col2 [0,0,-1] = -5
+				[0, 0, -3], // dot with col2 [0,0,-1] = +3
+			];
+
+			const z = p.projectZ(data);
+			expect(z[0]).toBeCloseTo(-5);
+			expect(z[1]).toBeCloseTo(3);
+		});
+
+		it("row-swap matrix: z uses column 2", () => {
+			// Swap rows 0 and 2 of identity
+			// Column 2 = [1, 0, 0] (data dim 0 maps to z)
+			const p = new Projection(3, [
+				[0, 0, 1],
+				[0, 1, 0],
+				[1, 0, 0],
+			]);
+
+			const data = [
+				[10, 0, 3], // dot with col2 [1,0,0] = 10
+				[-5, 0, 3], // dot with col2 [1,0,0] = -5
+			];
+
+			const z = p.projectZ(data);
+			expect(z[0]).toBeCloseTo(10);
+			expect(z[1]).toBeCloseTo(-5);
+			// A has higher z (drawn on top)
+			expect(z[0]).toBeGreaterThan(z[1]);
+		});
+	});
+
+	describe("setAxis", () => {
+		it("prevents z-axis flip during orthogonalization", () => {
+			const p = new Projection(3, identity(3));
+			// Get initial column 2: [0, 0, 1]
+			const getCol2 = () => p.getMatrix().map((row) => row[2]);
+			const oldCol2 = getCol2();
+
+			// Make a large perturbation to axis 0 that could flip column 2
+			// by pushing it strongly into the z direction
+			p.setAxis(0, [0.1, 0.1, 1]);
+
+			const newCol2 = getCol2();
+
+			// Column 2 should not have flipped: dot product should be positive
+			const dotProduct = dot(oldCol2, newCol2);
+			expect(dotProduct).toBeGreaterThan(0);
+		});
+
+		it("preserves orthonormality after preventing z-flip", () => {
+			const p = new Projection(3, identity(3));
+
+			// Make a perturbation
+			p.setAxis(0, [0.1, 0.1, 1]);
+
+			const m = p.getMatrix();
+
+			// Check rows are unit vectors
+			for (const row of m) {
+				const norm = Math.sqrt(dot(row, row));
+				expect(norm).toBeCloseTo(1);
+			}
+
+			// Check rows are orthogonal
+			expect(dot(m[0], m[1])).toBeCloseTo(0);
+			expect(dot(m[0], m[2])).toBeCloseTo(0);
+			expect(dot(m[1], m[2])).toBeCloseTo(0);
+		});
+	});
+});
+
+</document_content>
+</document>
+<document index="38">
+<source>tsconfig.json</source>
+<document_content>
+{
+	"compilerOptions": {
+		"module": "ESNext",
+		"target": "ES2020",
+		"moduleResolution": "bundler",
+		"lib": ["DOM", "DOM.Iterable", "ES2020"],
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"strict": true,
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"verbatimModuleSyntax": true
+	},
+	"include": ["src/**/*.ts"]
+}
+
+</document_content>
+</document>
+<document index="39">
+<source>tsup.config.ts</source>
+<document_content>
+import { defineConfig } from "tsup";
+
+export default defineConfig({
+	entry: ["src/index.ts"],
+	format: ["esm"],
+	dts: true,
+	sourcemap: true,
+	clean: true,
+	noExternal: [/^d3-/],
+});
+
+</document_content>
+</document>
+<document index="40">
+<source>vite.config.ts</source>
+<document_content>
+import { readdirSync } from "node:fs";
+import { resolve } from "node:path";
+import { defineConfig } from "vitest/config";
+
+const root = resolve(__dirname, "examples");
+const htmlFiles = readdirSync(root).filter((f) => f.endsWith(".html"));
+
+const input: Record<string, string> = {};
+for (const file of htmlFiles) {
+	input[file.replace(".html", "")] = resolve(root, file);
+}
+
+export default defineConfig({
+	root: "examples",
+	publicDir: false,
+	resolve: {
+		alias: {
+			"@grandscatter/core": resolve(__dirname, "src/index.ts"),
+		},
+	},
+	test: {
+		root: resolve(__dirname),
+	},
+	build: {
+		target: "esnext",
+		outDir: resolve(__dirname, "dist"),
+		emptyOutDir: true,
+		rollupOptions: {
+			input,
+		},
+	},
+});
+
+</document_content>
+</document>
+</documents>

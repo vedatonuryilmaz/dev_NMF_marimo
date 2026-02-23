@@ -114,12 +114,12 @@ def prepare_grandscatter_data(
     n_comps = H_prop.shape[1]
     axis_fields = [f"Comp_{i}" for i in range(n_comps)]
 
-    # Center each component axis by subtracting its column mean.
-    # Proportions sum to 1 per row, which creates a degenerate linear
-    # dependency (the 16th singular value ≈ 0).  Centering removes that
-    # artificial constraint so all 15 remaining axes are independent and
-    # the grand-tour projection fills 3-D space correctly.
-    H_centered = (H_prop - H_prop.mean(axis=0)).astype(np.float32)
+    # Use raw proportions. Do NOT center the data.
+    # Centering (subtracting mean) shifts the origin, which makes the 
+    # component axes point in directions relative to the "average sample"
+    # rather than "pure component". For NMF, users expect axes to radiate
+    # from zero abundance.
+    H_centered = H_prop.astype(np.float32)
 
     df = pd.DataFrame(H_centered, columns=axis_fields)
     df["cancer_type"] = [sid[:4] for sid in meta_df["sample_id"]]
