@@ -1,0 +1,29 @@
+{
+  "id": "capability-qa",
+  "version": "1.0.0",
+  "objective": "Verify artifacts against spec and quality gates.",
+  "permissions": [
+    "allow_file_io",
+    "allow_shell_exec"
+  ],
+  "inputs": [
+    {
+      "file": "SPEC_CONTRACT.json",
+      "critical": true
+    },
+    {
+      "file": "EVIDENCE_LOG.md",
+      "critical": true
+    }
+  ],
+  "outputs": [
+    {
+      "file": "HANDOFF.json",
+      "validation_gate": "gate.marimo-check"
+    }
+  ],
+  "failure_routing": {
+    "missing_input": "BLOCK_AND_REQUEST_INFO",
+    "gate_failure": "REVERT_TO_PREVIOUS_ROLE"
+  }
+}

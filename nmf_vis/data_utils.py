@@ -24,6 +24,51 @@ def _get_dataframe(filepath: Path) -> pd.DataFrame:
     return cache[filepath]
 
 
+def _component_index(column_name: str) -> int | None:
+    """Extract numeric component id from names like Comp_14 / comp14 / Component 14."""
+    match = re.match(r"(?i)^comp(?:onent)?[_\s-]*(\d+)$", column_name.strip())
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def _extract_component_columns(
+    df: pd.DataFrame, sample_id_column: str = "sample_id"
+) -> list[str]:
+    """Return component columns, preferring explicit component-like names."""
+    component_like = [
+        c for c in df.columns if c != sample_id_column and _component_index(c) is not None
+    ]
+    if component_like:
+        return component_like
+
+    # Fallback for datasets without explicit component naming.
+    return [
+        c
+        for c in df.columns
+        if c != sample_id_column and pd.api.types.is_numeric_dtype(df[c])
+    ]
+
+
+def _canonicalize_component_columns(
+    component_columns: list[str],
+) -> tuple[list[str], np.ndarray | None]:
+    """Sort by numeric component id when possible; return reorder index for raw -> sorted."""
+    indexed = [(_component_index(col), col, i) for i, col in enumerate(component_columns)]
+    component_ids = [idx for idx, _, _ in indexed]
+
+    if any(idx is None for idx in component_ids):
+        return component_columns, None
+    if len(set(component_ids)) != len(component_ids):
+        return component_columns, None
+
+    indexed_non_null = [(int(idx), col, i) for idx, col, i in indexed]
+    sorted_indexed = sorted(indexed_non_null, key=lambda x: x[0])
+    sorted_columns = [col for _, col, _ in sorted_indexed]
+    reorder = np.asarray([i for _, _, i in sorted_indexed], dtype=int)
+    return sorted_columns, reorder
+
+
 def _get_prepared_data(
     filepath: Path,
     sample_id_column: str = "sample_id",
@@ -45,22 +90,21 @@ def _get_prepared_data(
 
     sample_ids = df[sample_id_column].tolist()
     
+    component_columns = _extract_component_columns(df, sample_id_column)
+    sorted_component_columns, reorder = _canonicalize_component_columns(component_columns)
+
     # Load H matrix either from npy or from CSV
     if npy_path is not None:
         H = np.load(npy_path)
         if selection is not None:
             H = H[selection]
+        if len(component_columns) == H.shape[1] and reorder is not None:
+            H = H[:, reorder]
     else:
-        component_columns = [
-            c
-            for c in df.columns
-            if c != sample_id_column and pd.api.types.is_numeric_dtype(df[c])
-        ]
-
         if not component_columns:
             raise ValueError(f"No numeric component columns found in {filepath}")
 
-        H = df[component_columns].values
+        H = df[sorted_component_columns].values
 
     cancer_types = [i[:4] for i in sample_ids]
 
@@ -87,8 +131,9 @@ def prepare_grandscatter_data(
     Returns
     -------
     df : pd.DataFrame
-        One row per sample. Columns: ``Comp_0`` … ``Comp_15`` (proportional
-        NMF activity) plus ``cancer_type`` (categorical label).
+        One row per sample. Columns are component fields aligned to the source
+        metadata names (numerically canonicalized when parseable) plus
+        ``cancer_type`` (categorical label).
     axis_fields : list[str]
         The 16 component column names to use as projection axes.
     label_colors : dict[str, str]
@@ -111,11 +156,23 @@ def prepare_grandscatter_data(
         meta_df = meta_df.iloc[selection].reset_index(drop=True)
         H_prop = H_prop[selection]
 
-    n_comps = H_prop.shape[1]
-    axis_fields = [f"Comp_{i}" for i in range(n_comps)]
+    component_columns = _extract_component_columns(meta_df, sample_id_column="sample_id")
+    if not component_columns:
+        raise ValueError(
+            f"No component columns found in metadata CSV: {csv_path}"
+        )
+    if len(component_columns) != H_prop.shape[1]:
+        raise ValueError(
+            "Component count mismatch between metadata CSV and NPY matrix: "
+            f"{len(component_columns)} columns vs {H_prop.shape[1]} matrix components"
+        )
+
+    axis_fields, reorder = _canonicalize_component_columns(component_columns)
+    if reorder is not None:
+        H_prop = H_prop[:, reorder]
 
     # Use raw proportions. Do NOT center the data.
-    # Centering (subtracting mean) shifts the origin, which makes the 
+    # Centering (subtracting mean) shifts the origin, which makes the
     # component axes point in directions relative to the "average sample"
     # rather than "pure component". For NMF, users expect axes to radiate
     # from zero abundance.

@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "roles": [
+    "roles/capability-build.json",
+    "roles/capability-qa.json"
+  ],
+  "gates": [
+    "gates/gate.marimo-check.json",
+    "gates/gate.higlass-render-path.json",
+    "gates/gate.live-smoke.json"
+  ]
+}

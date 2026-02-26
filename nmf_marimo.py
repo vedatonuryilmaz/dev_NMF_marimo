@@ -23,7 +23,11 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md("# Explore cancer cCRE signatures")
+    mo.md(
+        r"""
+        # Explore cancer cCRE signatures
+        """
+    )
     return
 
 
@@ -35,6 +39,12 @@ def _(mo):
         label="Sort by:",
     )
     return (sort_method,)
+
+
+@app.cell
+def _(mo):
+    shared_selected_ids, set_shared_selected_ids = mo.state([])
+    return set_shared_selected_ids, shared_selected_ids
 
 
 @app.cell
@@ -58,8 +68,35 @@ def _(mo, scatter):
 
 
 @app.cell
-def _(create_heatmap_figure, mo, scatter_widget, sort_method):
-    selection = scatter_widget.selection
+def _(np):
+    def normalize_selection(selection):
+        if selection is None:
+            return []
+        if isinstance(selection, np.ndarray):
+            values = selection.tolist()
+        else:
+            values = list(selection)
+        return [int(v) for v in values]
+
+    return (normalize_selection,)
+
+
+@app.cell
+def _(normalize_selection, scatter_widget, set_shared_selected_ids):
+    _incoming_ids = normalize_selection(scatter_widget.selection)
+
+    def _update(current_ids):
+        if _incoming_ids == current_ids:
+            return current_ids
+        return _incoming_ids
+
+    set_shared_selected_ids(_update)
+    return
+
+
+@app.cell
+def _(create_heatmap_figure, mo, shared_selected_ids, sort_method):
+    selection = shared_selected_ids()
 
     selected_ids = None
     if selection is not None and len(selection) > 0:
@@ -102,6 +139,29 @@ def _(create_grandscatter_widget, mo):
         )
 
     return grandscatter_plot, gs_widget
+
+
+@app.cell
+def _(gs_widget, normalize_selection, set_shared_selected_ids):
+    if gs_widget is not None:
+        _incoming_ids = normalize_selection(gs_widget.selected_points)
+
+        def _update(current_ids):
+            if _incoming_ids == current_ids:
+                return current_ids
+            return _incoming_ids
+
+        set_shared_selected_ids(_update)
+    return
+
+
+@app.cell
+def _(normalize_selection, scatter_widget, shared_selected_ids):
+    target_ids = shared_selected_ids()
+    _current_ids = normalize_selection(scatter_widget.selection)
+    if _current_ids != target_ids:
+        scatter_widget.selection = target_ids
+    return
 
 
 @app.cell
@@ -171,7 +231,7 @@ function attach() {{
     const ny = -((e.clientY - r.top)  / r.height * 2 - 1);
     const hit = nearest(nx, ny);
     if (hit && hit.dist < 0.03) {{
-      tip.innerHTML = "<b>" + hit.ct + "</b> &nbsp;|&nbsp; Comp_" + hit.comp;
+      tip.innerHTML = "<b>" + hit.ct + "</b> &nbsp;|&nbsp; " + hit.comp;
       tip.style.display = "block";
       tip.style.left = (e.clientX + 14) + "px";
       tip.style.top  = (e.clientY - 36) + "px";
@@ -192,13 +252,12 @@ attach();
 
 
 @app.cell
-def _(gs_widget, selected_ids):
+def _(gs_widget, normalize_selection, shared_selected_ids):
+    _selected_ids = shared_selected_ids()
     if gs_widget is not None:
-        # Update selection on existing widget for fast feedback
-        if selected_ids is not None and len(selected_ids) > 0:
-            gs_widget.selected_points = selected_ids
-        else:
-            gs_widget.selected_points = []
+        _current_ids = normalize_selection(gs_widget.selected_points)
+        if _current_ids != _selected_ids:
+            gs_widget.selected_points = _selected_ids
     return
 
 

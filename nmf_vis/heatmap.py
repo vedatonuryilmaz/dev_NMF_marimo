@@ -592,7 +592,7 @@ def create_grandscatter_widget(
         # to maxDataRadius (L2 norm of data rows), which mathematically
         # guarantees all projected points stay within the axis extents when
         # using orthographic projection (the default).
-        # axis_fields order: Comp_0..Comp_15 matches NPY column order directly.
+        # axis_fields are prepared to stay aligned with underlying component data.
         widget = Scatter(
             df,
             axis_fields=axis_fields,
@@ -634,7 +634,8 @@ def get_grandscatter_initial_projection(cfg_path: str | Path = "conf/config.json
     max_r = float(np.max(np.sqrt(x_proj ** 2 + y_proj ** 2))) or 1.0
     x_n = (x_proj / max_r).tolist()
     y_n = (y_proj / max_r).tolist()
-    dom_comp = np.argmax(H, axis=1).tolist()
+    dom_idx = np.argmax(H, axis=1).tolist()
+    dom_comp = [axis_fields[i] for i in dom_idx]
     cancer_types = df["cancer_type"].tolist()
 
     points = [

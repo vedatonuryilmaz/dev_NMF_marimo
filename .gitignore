@@ -51,6 +51,9 @@ brand-state/
 engineering-state/
 global-state/
 venture-state/
+agent-statae/
+vendor/
+*.cxml 
 
 # Common agent/runtime logs and artifacts
 *.log
