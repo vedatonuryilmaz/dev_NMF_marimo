@@ -1,7 +1,0 @@
-{
-  "id": "gate.marimo-check",
-  "type": "executable",
-  "invariant": "Notebook passes marimo static validation with no critical findings.",
-  "command": "UV_CACHE_DIR=$PWD/.uv-cache uv run marimo check nmf_marimo.py",
-  "evidence_requirement": "Exit code 0 and command output logged in EVIDENCE_LOG.md"
-}

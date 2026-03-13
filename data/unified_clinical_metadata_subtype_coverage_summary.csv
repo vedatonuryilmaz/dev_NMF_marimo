@@ -1,0 +1,24 @@
+cancer_type,n_samples,n_with_subtype,coverage_pct,subtypes
+ACC,9,9,100.0,"C1A, C1B"
+BLCA,10,10,100.0,"Basal_squamous, Luminal, Luminal_infiltrated, Luminal_papillary, Neuronal"
+BRCA,74,74,100.0,"Basal, Her2, LumA, LumB, Normal"
+CESC,2,2,100.0,"CN_low, Squamous Carcinoma"
+CHOL,5,2,40.0,Cluster 2
+COAD,38,31,81.6,"CIN, GS, HM-SNV, MSI"
+ESCA,18,17,94.4,"CIN, ESCC, HM-SNV"
+GBM,9,9,100.0,"IDHmut-non-codel, IDHwt"
+HNSC,9,9,100.0,"HPV-negative, HPV-positive"
+KIRC,16,3,18.8,"Cluster 3, Cluster 4"
+KIRP,34,15,44.1,"Type 1 Papillary RCC, Type 2 Papillary RCC, Unclassified Papillary RCC"
+LGG,13,13,100.0,"Codel, G-CIMP-high, G-CIMP-low, Mesenchymal-like"
+LIHC,17,9,52.9,"iCluster NA, iCluster iCluster:1, iCluster iCluster:2, iCluster iCluster:3"
+LUAD,22,1,4.5,TRU
+LUSC,16,0,0.0,
+MESO,7,0,0.0,
+PCPG,9,8,88.9,"Kinase signaling, Pseudohypoxia, Wnt-altered"
+PRAD,26,16,61.5,"1-ERG, 2-ETV1, 3-ETV4, 8-other"
+SKCM,13,5,38.5,"-, BRAF_Hotspot_Mutants, Triple_WT"
+STAD,21,19,90.5,"CIN, EBV, GS, MSI"
+TGCT,9,9,100.0,"Non-seminoma, Seminoma"
+THCA,14,13,92.9,"3, Braf-like, Ras-like"
+UCEC,13,13,100.0,"CN_HIGH, CN_LOW, MSI, NA, POLE"

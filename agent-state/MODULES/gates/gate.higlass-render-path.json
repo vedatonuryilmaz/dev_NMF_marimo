@@ -1,7 +1,0 @@
-{
-  "id": "gate.higlass-render-path",
-  "type": "artifact_scan",
-  "invariant": "HiGlass notebook avoids the nested higlass-python anywidget path that requires `_tileset_client` model resolution.",
-  "command": "rg -n \"view\\.widget\\(|_tileset_client\" higlass_marimo.py",
-  "evidence_requirement": "Command returns no matches and output is logged in EVIDENCE_LOG.md"
-}

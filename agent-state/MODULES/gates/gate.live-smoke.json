@@ -1,7 +1,0 @@
-{
-  "id": "gate.live-smoke",
-  "type": "executable",
-  "invariant": "Both marimo apps serve HTTP 200 while running.",
-  "command": "echo \"higlass $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8811/)\"; echo \"nmf $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8813/)\"",
-  "evidence_requirement": "Output shows `higlass 200` and `nmf 200`."
-}

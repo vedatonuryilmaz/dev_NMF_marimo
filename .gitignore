@@ -40,36 +40,49 @@ wheels/
 
 # Logs
 *.log
+.runlogs/
+.matplotlib_cache/
 
 # System files
 .DS_Store
 Thumbs.db
 
-# Agent state, logs and related documentation
-# Ignore state directories created by agents or orchestration
+# ACE / agent orchestration artifacts
+.agents/
+.mcp-config/
+agent-state/
 brand-state/
 engineering-state/
 global-state/
 venture-state/
-agent-state/
 vendor/
-*.cxml 
 
-# Common agent/runtime logs and artifacts
-*.log
-.vscode/
-.github/
-# Swarm / handoff / registry files and decision records
+# ACE / swarm docs, handoffs, manifests, and logs
+AGENTS.md
+HANDOFF.json
 *SWARM*.json
 *SWARM_REGISTRY*.json
 *SWARM_HANDOFF*.json
 DECISION_LOG.md
+DECISIONS.md
 *DECISION*.md
-TASK.md
-MASTER_PLAN.md
+EVIDENCE_LOG.md
+RISKS.md
 GLOBAL_RISKS.md
+TASK.md
 STATUS.md
+MASTER_PLAN.md
 ARCHITECTURE.md
 BUILD_STATUS.md
+QUALITY_GATES.md
+TEAL_CONFIG.md
+PIPELINE.yaml
+INTERFACE_REGISTRY.md
+PROVENANCE_LOG.md
 SPEC_CONTRACT.json
 TEST_LOG.md
+
+# Editor / generated artifact files
+.vscode/
+.github/
+*.cxml

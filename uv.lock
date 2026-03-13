@@ -437,15 +437,15 @@ wheels = [
 
 [[package]]
 name = "higlass-python"
-version = "1.3.3"
+version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anywidget" },
     { name = "higlass-schema" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/6a/f17ce9e73e0c6dc24d4489815daf9602b4d5e457e348063ea65e18d87e35/higlass_python-1.3.3.tar.gz", hash = "sha256:104a7f1276354de211f9534558ae58127478eee73961c5a3ba0af364dce53c07", size = 2330238, upload-time = "2025-04-11T14:41:30.116Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b6/81/c8fb21cc64017177a673fc4dd76660113e9b42e7ebd6a551d1bde77eb365/higlass_python-1.4.0.tar.gz", hash = "sha256:bf250e8baa2f3667f715a585805191cec5ab0bd8d93392abcdfe43aa430daef3", size = 2289766, upload-time = "2026-03-01T15:58:12.001Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/d1/26a7c67334b27b14027d20d64490ec8031c8dff4bd62f60ea4f486239f25/higlass_python-1.3.3-py3-none-any.whl", hash = "sha256:8906bcaca68a341c36ced3f3367abcedfde68dc53033d42cbbcecf7b65cfccb5", size = 22963, upload-time = "2025-04-11T14:41:28.854Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/29/06b523f00c0d2238658db9033f9be66e4ba859cab414f8bd69a38646ddac/higlass_python-1.4.0-py3-none-any.whl", hash = "sha256:fa1d5ed4924b73bf391ee9342c82560c71942e980f799b338faf7c07c4c8a1e8", size = 24154, upload-time = "2026-03-01T15:58:10.301Z" },
 ]
 
 [[package]]
@@ -746,7 +746,7 @@ wheels = [
 
 [[package]]
 name = "marimo"
-version = "0.19.11"
+version = "0.20.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -767,9 +767,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/06/31/aa12298afce0c7cf6bc0d8ffe664b4cfb295451f9029ca7a461c6e30390d/marimo-0.19.11.tar.gz", hash = "sha256:1f65a19f9dced82ae2d041dbe31b3f47ba16993f6411d41ba526b3b322abd948", size = 38203731, upload-time = "2026-02-12T18:37:49.536Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d4/be/84a28265e1698dbac439de8a1d428a18e07c4dd23fa72df72e8b4922e3ff/marimo-0.20.2.tar.gz", hash = "sha256:cdab009b65d58d571640ab8bb2ede68ab3b755c8f99f06b934a23f3b8aba3f34", size = 38237601, upload-time = "2026-02-22T20:19:42.198Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/d4/817cfdcf9636fc75036b9e0f7aa458c0bedec420d79768005ccfcf7fc9d8/marimo-0.19.11-py3-none-any.whl", hash = "sha256:4f98b677c89cada69c330e38f0747b4fca73cedb6f81b66832df3035ab8b6cff", size = 38609582, upload-time = "2026-02-12T18:37:53.954Z" },
+    { url = "https://files.pythonhosted.org/packages/93/55/6d128565bb18cb1f64707742bdbf05f7b1674e4063f70500de97b0be6a3e/marimo-0.20.2-py3-none-any.whl", hash = "sha256:f94a1bd19fa85219d0549281776e7ec4c9253d5d5849d6f2459cc3ab868abbc5", size = 38645577, upload-time = "2026-02-22T20:19:37.298Z" },
 ]
 
 [[package]]
@@ -939,7 +939,7 @@ requires-dist = [
     { name = "grandscatter", specifier = ">=0.2.1" },
     { name = "higlass-python" },
     { name = "jupyter-scatter", extras = ["all"], specifier = ">=0.22.0" },
-    { name = "marimo", specifier = ">=0.19.0" },
+    { name = "marimo", specifier = ">=0.20.2" },
     { name = "numpy", specifier = ">=2.3,<3" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "plotly", specifier = ">=6.1.2" },
