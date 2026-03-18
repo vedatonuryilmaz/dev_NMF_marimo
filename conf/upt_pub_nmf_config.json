@@ -4,18 +4,24 @@
     "Canonical": {
       "DEFAULT_CSV_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.csv",
       "NPY_PROPORTIONS_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.npy",
+      "GRANDSCATTER_CSV_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.csv",
+      "GRANDSCATTER_NPY_PROPORTIONS_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.npy",
       "UMAP_FILENAME": "data/canonical/tcga_atac_nmf_k24_umap_coordinates.csv",
       "ANALYSIS_METADATA_FILENAME": "data/canonical/tcga_atac_nmf_k24_metadata_sorted.csv"
     },
     "CN-aware unadjusted": {
       "DEFAULT_CSV_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.csv",
       "NPY_PROPORTIONS_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.npy",
+      "GRANDSCATTER_CSV_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.csv",
+      "GRANDSCATTER_NPY_PROPORTIONS_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.npy",
       "UMAP_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_umap_coordinates.csv",
       "ANALYSIS_METADATA_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_metadata_sorted.csv"
     },
     "CN-aware adjusted": {
       "DEFAULT_CSV_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.csv",
       "NPY_PROPORTIONS_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.npy",
+      "GRANDSCATTER_CSV_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.csv",
+      "GRANDSCATTER_NPY_PROPORTIONS_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.npy",
       "UMAP_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_umap_coordinates.csv",
       "ANALYSIS_METADATA_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_metadata_sorted.csv"
     }
