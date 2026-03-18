@@ -114,6 +114,7 @@ def _resolve_strip_colors(
 
 def _add_metadata_annotation_strip(
     fig: go.Figure,
+    x_values: list[str] | np.ndarray,
     group_names: list[str],
     group_colors: list[str],
     label: str,
@@ -159,6 +160,7 @@ def _add_metadata_annotation_strip(
 
     fig.add_trace(
         go.Heatmap(
+            x=x_values,
             z=[group_idx_arr],
             colorscale=group_scale,
             showscale=False,
@@ -250,6 +252,7 @@ def _configure_updated_layout(
     n_comps: int,
     n_samples: int,
     comp_order: np.ndarray,
+    x_labels: np.ndarray,
     x_labels_short: np.ndarray,
     total_rows: int,
     n_strip_rows: int,
@@ -268,7 +271,7 @@ def _configure_updated_layout(
 
     fig.update_xaxes(
         tickmode="array",
-        tickvals=list(range(n_samples)),
+        tickvals=x_labels.tolist(),
         ticktext=x_labels_short,
         tickangle=90,
         row=total_rows,
@@ -342,14 +345,13 @@ def create_heatmap_figure(
 
     H_sorted = H_ord[sample_order]
     x_labels = np.asarray(sample_ids_from_file)[sample_order]
-    x_labels_short = np.asarray([label[:4] for label in x_labels])
+    ordered_indices = list(sample_order)
+    x_labels_short = np.asarray([cancer_types[index] for index in ordered_indices])
 
     component_color_file = cfg.get(
         "JSON_FILENAME_COMPONENT_COLORS", "conf/nmf_component_color_map.json"
     )
     comp_colors = _load_component_colors(component_color_file, n_comps, comp_order)
-
-    ordered_indices = list(sample_order)
     submitter_id_column = cfg.get("STRIP_METADATA_ID_COLUMN", "submitter_id")
     submitter_ids = (
         merged_strip_metadata.get(submitter_id_column, merged_strip_metadata["patient_id"])
@@ -389,6 +391,8 @@ def create_heatmap_figure(
 
     fig.add_trace(
         go.Heatmap(
+            x=x_labels,
+            y=[f"Comp {index}" for index in comp_order],
             z=H_sorted.T,
             colorscale="Turbo",
             colorbar=dict(title="Activity", x=1.02),
@@ -399,8 +403,22 @@ def create_heatmap_figure(
         col=1,
     )
 
-    _add_proportional_bar_chart(fig, H_sorted, comp_colors, comp_order)
-    _add_component_strip(fig, H_ord, sample_order, comp_colors, n_comps, comp_order)
+    _add_proportional_bar_chart(
+        fig,
+        H_sorted,
+        comp_colors,
+        comp_order,
+        x_values=x_labels,
+    )
+    _add_component_strip(
+        fig,
+        H_ord,
+        sample_order,
+        comp_colors,
+        n_comps,
+        comp_order,
+        x_values=x_labels,
+    )
 
     for offset, strip_spec in enumerate(strip_specs, start=4):
         column = strip_spec["column"]
@@ -416,6 +434,7 @@ def create_heatmap_figure(
         ordered_winning_components = [winning_components[index] for index in ordered_indices]
         _add_metadata_annotation_strip(
             fig,
+            x_labels,
             ordered_values,
             ordered_colors,
             strip_spec["label"],
@@ -431,6 +450,7 @@ def create_heatmap_figure(
         n_comps,
         n_samples,
         comp_order,
+        x_labels,
         x_labels_short,
         total_rows,
         len(strip_specs),

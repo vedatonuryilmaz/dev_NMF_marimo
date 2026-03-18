@@ -246,6 +246,7 @@ def _add_proportional_bar_chart(
     H_sorted: np.ndarray,
     comp_colors: list,
     comp_order: np.ndarray,
+    x_values: list[str] | np.ndarray | None = None,
     show_legend: bool = False,
 ) -> None:
     _, _ = H_sorted.shape
@@ -260,6 +261,7 @@ def _add_proportional_bar_chart(
 
         fig.add_trace(
             go.Bar(
+                x=x_values,
                 y=H_proportional[:, i],
                 name=comp_name,
                 marker_color=color,
@@ -285,6 +287,7 @@ def _add_component_strip(
     comp_colors: list,
     n_comps: int,
     comp_order: np.ndarray,
+    x_values: list[str] | np.ndarray | None = None,
     show_legend: bool = False,
 ) -> None:
     """Add component strip with interactive legend."""
@@ -306,6 +309,7 @@ def _add_component_strip(
 
     fig.add_trace(
         go.Heatmap(
+            x=x_values,
             z=[winning_comp_indices],
             colorscale=comp_scale,
             showscale=False,
@@ -324,6 +328,7 @@ def _add_cancer_strip_with_legend(
     samp_order: np.ndarray,
     uniq_cancers: list,
     cancer_color_map: dict,
+    x_values: list[str] | np.ndarray | None = None,
 ) -> None:
     """Add cancer type strip with interactive legend."""
     cancer_to_idx = {ct: i for i, ct in enumerate(uniq_cancers)}
@@ -342,6 +347,7 @@ def _add_cancer_strip_with_legend(
 
     fig.add_trace(
         go.Heatmap(
+            x=x_values,
             z=[cancer_idx_arr],
             colorscale=cancer_scale,
             showscale=False,
@@ -361,6 +367,7 @@ def _add_annotation_strip_with_legend(
     label: str,
     row: int,
     col: int,
+    x_values: list[str] | np.ndarray | None = None,
 ) -> None:
     """Add annotation strip (organ system/embryonic layer) with interactive legend."""
     unique_groups = sorted(list(set(group_names)))
@@ -387,6 +394,7 @@ def _add_annotation_strip_with_legend(
 
     fig.add_trace(
         go.Heatmap(
+            x=x_values,
             z=[group_idx_arr],
             colorscale=group_scale,
             showscale=False,
