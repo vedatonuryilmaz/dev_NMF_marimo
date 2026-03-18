@@ -124,6 +124,30 @@ def _canonicalize_component_columns(
     return sorted_columns, reorder
 
 
+def _resolve_component_source_paths(
+    cfg: dict,
+    *,
+    csv_key: str,
+    npy_key: str,
+    default_csv: str,
+    default_npy: str,
+) -> tuple[Path, Path]:
+    """Resolve analysis component sources with optional view-specific overrides."""
+    csv_path = Path(
+        cfg.get(
+            csv_key,
+            cfg.get("DEFAULT_CSV_FILENAME", default_csv),
+        )
+    )
+    npy_path = Path(
+        cfg.get(
+            npy_key,
+            cfg.get("NPY_PROPORTIONS_FILENAME", default_npy),
+        )
+    )
+    return csv_path, npy_path
+
+
 def _get_prepared_data(
     filepath: Path,
     sample_id_column: str = "sample_id",
@@ -285,11 +309,12 @@ def prepare_grandscatter_data(
     """
     cfg = resolve_analysis_cfg(cfg_path, analysis_name)
 
-    csv_path = Path(
-        cfg.get("DEFAULT_CSV_FILENAME", "data/all_H_component_contributions_k16.csv")
-    )
-    npy_path = Path(
-        cfg.get("NPY_PROPORTIONS_FILENAME", "data/tcga_bulk_k16_H_proportions.npy")
+    csv_path, npy_path = _resolve_component_source_paths(
+        cfg,
+        csv_key="GRANDSCATTER_CSV_FILENAME",
+        npy_key="GRANDSCATTER_NPY_PROPORTIONS_FILENAME",
+        default_csv="data/all_H_component_contributions_k16.csv",
+        default_npy="data/tcga_bulk_k16_H_proportions.npy",
     )
 
     # -- load H proportions and sample metadata --------------------------
@@ -308,8 +333,9 @@ def prepare_grandscatter_data(
         )
     if len(component_columns) != H_prop.shape[1]:
         raise ValueError(
-            "Component count mismatch between metadata CSV and NPY matrix: "
-            f"{len(component_columns)} columns vs {H_prop.shape[1]} matrix components"
+            "Grandscatter component count mismatch between CSV and NPY sources: "
+            f"{len(component_columns)} columns from {csv_path} vs "
+            f"{H_prop.shape[1]} matrix components from {npy_path}"
         )
 
     axis_fields, reorder = _canonicalize_component_columns(component_columns)
