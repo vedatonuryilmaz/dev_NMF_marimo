@@ -549,6 +549,7 @@ def _compute_grandscatter_axis_and_camera(
 def create_grandscatter_widget(
     cfg_path: str | Path = "conf/config.json",
     selected_sample_ids: list[int] | None = None,
+    analysis_name: str | None = None,
 ):
     """Return a ``grandscatter.Scatter`` anywidget for NMF proportions.
 
@@ -572,7 +573,7 @@ def create_grandscatter_widget(
     from grandscatter import Scatter  # lazy import keeps module loadable w/o grandscatter
 
     df, axis_fields, label_colors = prepare_grandscatter_data(
-        cfg_path, selection=selected_sample_ids
+        cfg_path, selection=selected_sample_ids, analysis_name=analysis_name
     )
 
     # Validate data before widget creation
@@ -607,7 +608,10 @@ def create_grandscatter_widget(
     return widget
 
 
-def get_grandscatter_initial_projection(cfg_path: str | Path = "conf/config.json") -> dict:
+def get_grandscatter_initial_projection(
+    cfg_path: str | Path = "conf/config.json",
+    analysis_name: str | None = None,
+) -> dict:
     """Return initial orthographic 2-D projection data for the hover tooltip.
 
     Uses the same circular basis grandscatter picks on first render so the
@@ -619,7 +623,7 @@ def get_grandscatter_initial_projection(cfg_path: str | Path = "conf/config.json
         - ``points``: list of {x, y, ct, comp, sample_id} dicts (normalized coords)
         - ``max_r``: float, scale factor used for normalisation
     """
-    df, axis_fields, _ = prepare_grandscatter_data(cfg_path)
+    df, axis_fields, _ = prepare_grandscatter_data(cfg_path, analysis_name=analysis_name)
     ndim = len(axis_fields)
     H = df[axis_fields].to_numpy(dtype=np.float64)
 

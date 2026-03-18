@@ -10,6 +10,10 @@ def create_umap_visualization(
     umap_df, h_matrix, sample_ids, cancer_types, cancer_color_map
 ):
     """Creates a UMAP visualization of the NMF components using jscatter."""
+    umap_df = umap_df.copy()
+    umap_df["Sample ID"] = sample_ids
+    umap_df["Cancer Type"] = cancer_types
+
     # Ensure all cancer types have colors
     unique_cancer_types = sorted(list(set(cancer_types)))
     if not all(ct in cancer_color_map for ct in unique_cancer_types):
@@ -50,13 +54,14 @@ def create_umap_visualization(
         }
     )
 
-    # Make sure to add sample_ids to the DataFrame
-    umap_df["Sample ID"] = sample_ids
-
     return scatter_plot, umap_df
 
 
-def create_scatterplot(cfg_path="conf/config.json", sort_method="component"):
+def create_scatterplot(
+    cfg_path="conf/config.json",
+    sort_method="component",
+    analysis_name: str | None = None,
+):
     """Creates the complete NMF visualization using Plotly and UMAP."""
 
     (
@@ -73,7 +78,7 @@ def create_scatterplot(cfg_path="conf/config.json", sort_method="component"):
         x_labels_short,
         comp_order,
         umap_df,
-    ) = load_all_data(cfg_path, sort_method)
+    ) = load_all_data(cfg_path, sort_method, analysis_name=analysis_name)
 
     # Create UMAP visualization with lasso selection enabled
     umap_scatter, umap_df = create_umap_visualization(
